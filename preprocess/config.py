@@ -12,7 +12,8 @@ ENABLE_PIPELINES = [
     HalfWidthPipeline,
     LowerPipeline,
     ReplacePipeline,
-    SegmentPipeline
+    SegmentPipeline,
+    VocabPipeline
 ]
 
 # configs
@@ -53,3 +54,7 @@ SEGMENT_WORDS = [
     PHONE_PLACEHOLDER,
     URL_PLACEHOLDER
 ]
+
+GO = 'GO'
+EOS = 'EOS'  # also function as PAD
+UNK = 'UNK'

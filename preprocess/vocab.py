@@ -31,7 +31,7 @@ class VocabFactory():
         # Get words set
         all_words_set = all_words_counts.index
         # Get words ids
-        all_words_ids = len(all_words_set)
+        all_words_ids = range(len(all_words_set))
         
         # Dict to transform
         word2id = pd.Series(all_words_ids, index=all_words_set)
@@ -48,3 +48,8 @@ class VocabFactory():
         data = self.split_lines(data)
         word2id, id2word = self.build_vocab(data)
         return word2id, id2word
+
+
+if __name__ == '__main__':
+    factory = VocabFactory()
+    
