@@ -6,7 +6,14 @@ from preprocess import config
 import jieba
 
 
-class Pipeline():
+class Pipeline(object):
+    def __str__(self):
+        """
+        get class name
+        :return:
+        """
+        return self.__class__.__name__
+    
     def process_all(self, data):
         """
         process all data
@@ -106,5 +113,110 @@ class SegmentPipeline(Pipeline):
         :param text: text before segment cut
         :return: text joined with flag after segment
         """
-        
         return config.SEGMENT_JOIN_FLAG.join(jieba.cut(text))
+
+
+class HalfWidthPipeline(Pipeline):
+    def f2h(self, f_str):
+        """
+        transfer full width to half width
+        :param f_str:
+        :return:
+        """
+        h_str = ''
+        for uchar in f_str:
+            inside_code = ord(uchar)
+            if inside_code == 12288:
+                inside_code = 32
+            elif inside_code >= 65281 and inside_code <= 65374:
+                inside_code -= 65248
+            h_str += chr(inside_code)
+        return h_str
+    
+    def process_text(self, text):
+        """
+        transfer
+        :param text: text contains half width
+        :return: text contains full width
+        """
+        return self.f2h(text)
+
+
+class FullWidthPipeline(Pipeline):
+    def h2f(self, h_str):
+        """
+        transfer half width to full width
+        :return:
+        """
+        f_str = ''
+        for uchar in h_str:
+            inside_code = ord(uchar)
+            if inside_code == 32:
+                inside_code = 12288
+            elif inside_code >= 32 and inside_code <= 126:
+                inside_code += 65248
+            
+            f_str += chr(inside_code)
+        return f_str
+    
+    def process_text(self, text):
+        """
+        transfer
+        :param text: text contains half width
+        :return: text contains full width
+        """
+        return self.h2f(text)
+
+
+class NumberLetterHalfPipeline(Pipeline):
+    def process_text(self, text):
+        """
+        transfer number letter to half width
+        :param text:
+        :return:
+        """
+        result = ''
+        for c in text:
+            inside_code = ord(c)
+            if 65296 <= inside_code <= 65305 or 65345 <= inside_code <= 65370 or 65313 <= inside_code <= 65338:
+                inside_code = inside_code - 65248
+                c = chr(inside_code)
+            result += c
+        return result
+
+
+class NumberLetterFullPipeline(Pipeline):
+    def process_text(self, text):
+        """
+        transfer number letter to full width
+        :param text:
+        :return:
+        """
+        result = ''
+        for c in text:
+            inside_code = ord(c)
+            if 48 <= inside_code <= 57 or 97 <= inside_code <= 122 or 65 <= inside_code <= 90:
+                inside_code = inside_code + 65248
+                c = chr(inside_code)
+            result += c
+        return result
+
+
+class LowerPipeline(Pipeline):
+    def process_text(self, text):
+        """
+        transfer to lower text
+        :param text:
+        :return:
+        """
+        return text.lower()
+
+
+class UpperPipeline(Pipeline):
+    def process_text(self, text):
+        """
+        transfer to upper text
+        :param text:
+        :return:
+        """
+        return text.upper()

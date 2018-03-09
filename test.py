@@ -6,9 +6,15 @@ f = open(file, encoding='utf-8')
 max = 10
 pipelines = [pipeline() for pipeline in ENABLE_PIPELINES]
 
+data = []
+
 for index, line in enumerate(f.readlines()):
-    data = json.loads(line)
-    article = data.get('article')
-    for pipeline in pipelines:
-        article = pipeline.process_text(article)
-    print(article)
+    item = json.loads(line)
+    article = item.get('article')
+    data.append(article)
+
+for pipeline in pipelines:
+    print(pipeline.__str__())
+    data = pipeline.process_all(data)
+
+print(data)
