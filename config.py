@@ -1,4 +1,6 @@
 from preprocess.pipeline import *
+from os.path import exists, join
+from os import makedirs
 
 __all__ = ['*']
 
@@ -57,3 +59,10 @@ SEGMENT_WORDS = [
 GO = 'GO'
 EOS = 'EOS'  # also function as PAD
 UNK = 'UNK'
+
+VOCABS_SIZE_LIMIT = 30000
+
+DATASET_OUTPUT_FOLDER = join('dataset', 'nlpcc')
+
+if not exists(DATASET_OUTPUT_FOLDER):
+    makedirs(DATASET_OUTPUT_FOLDER)

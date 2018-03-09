@@ -1,9 +1,15 @@
 from itertools import chain
 import pandas as pd
-from preprocess import config
+import config
 
 
 class VocabTransformer(object):
+    def __init__(self, limit=-1):
+        """
+        max size of vocabs
+        :param limit:
+        """
+        self.limit = limit
     
     def split_lines(self, data):
         """
@@ -16,40 +22,34 @@ class VocabTransformer(object):
             result.append(line.split(config.SEGMENT_JOIN_FLAG))
         return result
     
-    def build_vocab(self, data):
+    def build_vocabs(self, data):
         """
-        build vocab
+        build vocabs
         :param data:
         :return:
         """
+        # split lines
+        data = self.split_lines(data)
         # merge all words
         all_words = list(chain(*data))
         # all words to Series
         all_words_sr = pd.Series(all_words)
         # get value count, index changed to set
         all_words_counts = all_words_sr.value_counts()
-        # Get words set
+        # get words set
         all_words_set = list(all_words_counts.index)
         
         for token in (config.UNK, config.EOS, config.GO):
             all_words_set.insert(0, token)
         
-        # Get words ids
+        if self.limit >= 0:
+            all_words_set = all_words_set[:self.limit]
+        
+        # get words ids
         all_words_ids = range(len(all_words_set))
         
-        # Dict to transform
+        # dict to transform
         word2id = pd.Series(all_words_ids, index=all_words_set).to_dict()
         id2word = pd.Series(all_words_set, index=all_words_ids).to_dict()
         
         return word2id, id2word
-    
-    def get_vocab(self, data):
-        """
-        get vocab
-        :param data:
-        :return:
-        """
-        data = self.split_lines(data)
-        word2id, id2word = self.build_vocab(data)
-        return word2id, id2word
-

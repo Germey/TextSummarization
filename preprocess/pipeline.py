@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from preprocess import config
+import config
 import jieba
 
 

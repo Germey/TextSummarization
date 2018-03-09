@@ -1,7 +1,7 @@
 import numpy as np
 import json
 import pickle as pkl
-from preprocess import config
+import config
 
 extra_tokens = [config.GO, config.EOS, config.UNK]
 

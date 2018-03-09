@@ -19,7 +19,7 @@ class Writer(object):
         :param file_name: target_file
         :return:
         """
-        print('Write %d lines to %s' % (len(data), file_name))
+        print('Write %d items to %s' % (len(data), file_name))
         with open(join(self.folder, file_name), 'w', encoding='utf-8') as f:
             for item in data:
                 f.write(item)
@@ -33,7 +33,7 @@ class Writer(object):
         :param ensure_ascii: ensure ascii
         :return:
         """
-        print('Write %d lines to %s' % (len(data), file_name))
+        print('Write %d items to %s' % (len(data), file_name))
         with open(join(self.folder, file_name), 'w', encoding='utf-8') as f:
             f.write(json.dumps(data, ensure_ascii=ensure_ascii))
     
@@ -44,6 +44,6 @@ class Writer(object):
         :param file_name: pickle
         :return:
         """
-        print('Write %d lines to %s' % (len(data), file_name))
+        print('Write %d items to %s' % (len(data), file_name))
         with open(join(self.folder, file_name), 'wb') as f:
             pickle.dump(data, f)
