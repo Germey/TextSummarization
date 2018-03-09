@@ -1,10 +1,10 @@
 from itertools import chain
 import pandas as pd
-
 from preprocess import config
 
 
-class VocabFactory():
+class VocabTransformer(object):
+    
     def split_lines(self, data):
         """
         split lines to array
@@ -29,13 +29,17 @@ class VocabFactory():
         # get value count, index changed to set
         all_words_counts = all_words_sr.value_counts()
         # Get words set
-        all_words_set = all_words_counts.index
+        all_words_set = list(all_words_counts.index)
+        
+        for token in (config.UNK, config.EOS, config.GO):
+            all_words_set.insert(0, token)
+        
         # Get words ids
         all_words_ids = range(len(all_words_set))
         
         # Dict to transform
-        word2id = pd.Series(all_words_ids, index=all_words_set)
-        id2word = pd.Series(all_words_set, index=all_words_ids)
+        word2id = pd.Series(all_words_ids, index=all_words_set).to_dict()
+        id2word = pd.Series(all_words_set, index=all_words_ids).to_dict()
         
         return word2id, id2word
     
@@ -49,7 +53,3 @@ class VocabFactory():
         word2id, id2word = self.build_vocab(data)
         return word2id, id2word
 
-
-if __name__ == '__main__':
-    factory = VocabFactory()
-    

@@ -5,8 +5,6 @@ import re
 from preprocess import config
 import jieba
 
-from preprocess.vocab import VocabFactory
-
 
 class Pipeline(object):
     def __str__(self):
@@ -222,11 +220,3 @@ class UpperPipeline(Pipeline):
         :return:
         """
         return text.upper()
-
-
-class VocabPipeline(Pipeline):
-    def __init__(self):
-        self.factory = VocabFactory()
-    
-    def process_all(self, data):
-        return self.factory.get_vocab(data)

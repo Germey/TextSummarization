@@ -19,7 +19,7 @@ def load_dict(filename):
             return pkl.load(f)
 
 
-class TextIterator():
+class TextIterator(object):
     """Simple Text iterator."""
     
     def __init__(self, source, source_dict,
@@ -27,8 +27,7 @@ class TextIterator():
                  n_words_source=-1,
                  skip_empty=False,
                  sort_by_length=False,
-                 encoding='utf-8'
-                 ):
+                 encoding='utf-8'):
         
         self.source = open(source, 'r', encoding=encoding)
         self.source_dict = load_dict(source_dict)
@@ -113,7 +112,7 @@ class TextIterator():
         yield source
 
 
-class BiTextIterator():
+class BiTextIterator(object):
     """Simple Bi text iterator."""
     
     def __init__(self, source, target,

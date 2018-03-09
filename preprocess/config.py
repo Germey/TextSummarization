@@ -13,7 +13,6 @@ ENABLE_PIPELINES = [
     LowerPipeline,
     ReplacePipeline,
     SegmentPipeline,
-    VocabPipeline
 ]
 
 # configs
