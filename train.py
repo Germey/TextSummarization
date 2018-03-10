@@ -1,7 +1,7 @@
-
-#!/usr/bin/env python
+# !/usr/bin/env python
 # coding: utf-8
 import sys
+
 sys.path.append('data')
 import os
 import math
@@ -13,23 +13,19 @@ from collections import OrderedDict
 import numpy as np
 import tensorflow as tf
 
-from data.data_iterator import TextIterator
-from data.data_iterator import BiTextIterator
+from preprocess.iterator import TextIterator, BiTextIterator
 
-import data.data_utils as data_utils
-from data.data_utils import prepare_batch
 from data.data_utils import prepare_train_batch
 
-from seq2seq_model import Seq2SeqModel
-
+from model import Seq2SeqModel
 
 # Data loading parameters
-tf.app.flags.DEFINE_string('source_vocabulary', 'data/sample.shuf.en.json', 'Path to source vocabulary')
-tf.app.flags.DEFINE_string('target_vocabulary', 'data/sample.shuf.fr.json', 'Path to target vocabulary')
-tf.app.flags.DEFINE_string('source_train_data', 'data/sample.shuf.en', 'Path to source training data')
-tf.app.flags.DEFINE_string('target_train_data', 'data/sample.shuf.fr', 'Path to target training data')
-tf.app.flags.DEFINE_string('source_valid_data', 'data/sample.shuf.en', 'Path to source validation data')
-tf.app.flags.DEFINE_string('target_valid_data', 'data/sample.shuf.fr', 'Path to target validation data')
+tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc/articles_vocabs.json', 'Path to source vocabulary')
+tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/nlpcc/summaries_vocabs.json', 'Path to target vocabulary')
+tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc/articles.train.txt', 'Path to source training data')
+tf.app.flags.DEFINE_string('target_train_data', 'dataset/nlpcc/summaries.train.txt', 'Path to target training data')
+tf.app.flags.DEFINE_string('source_valid_data', 'dataset/nlpcc/articles.eval.txt', 'Path to source validation data')
+tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc/summaries.eval.txt', 'Path to target validation data')
 
 # Network parameters
 tf.app.flags.DEFINE_string('cell_type', 'lstm', 'RNN cell for encoder and decoder, default: lstm')
@@ -68,23 +64,24 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False, 'Log placement of ops
 
 FLAGS = tf.app.flags.FLAGS
 
-def create_model(session, FLAGS):
 
+def create_model(session, FLAGS):
     config = OrderedDict(sorted(FLAGS.__flags.items()))
     model = Seq2SeqModel(config, 'train')
-
+    
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_dir)
     if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
         print('Reloading model parameters..')
         model.restore(session, ckpt.model_checkpoint_path)
-        
+    
     else:
         if not os.path.exists(FLAGS.model_dir):
             os.makedirs(FLAGS.model_dir)
         print('Created new model parameters..')
         session.run(tf.global_variables_initializer())
-   
+    
     return model
+
 
 def train():
     # Load parallel data to train
@@ -94,13 +91,13 @@ def train():
                                source_dict=FLAGS.source_vocabulary,
                                target_dict=FLAGS.target_vocabulary,
                                batch_size=FLAGS.batch_size,
-                               maxlen=FLAGS.max_seq_length,
+                               max_length=FLAGS.max_seq_length,
                                n_words_source=FLAGS.num_encoder_symbols,
                                n_words_target=FLAGS.num_decoder_symbols,
                                shuffle_each_epoch=FLAGS.shuffle_each_epoch,
                                sort_by_length=FLAGS.sort_by_length,
                                maxibatch_size=FLAGS.max_load_batches)
-
+    
     if FLAGS.source_valid_data and FLAGS.target_valid_data:
         print('Loading validation data..')
         valid_set = BiTextIterator(source=FLAGS.source_valid_data,
@@ -113,21 +110,22 @@ def train():
                                    n_words_target=FLAGS.num_decoder_symbols)
     else:
         valid_set = None
-
+    
     # Initiate TF session
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement, 
-        log_device_placement=FLAGS.log_device_placement, gpu_options=tf.GPUOptions(allow_growth=True))) as sess:
-
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
+                                          log_device_placement=FLAGS.log_device_placement,
+                                          gpu_options=tf.GPUOptions(allow_growth=True))) as sess:
+        
         # Create a log writer object
         log_writer = tf.summary.FileWriter(FLAGS.model_dir, graph=sess.graph)
-
+        
         # Create a new model or reload existing checkpoint
         model = create_model(sess, FLAGS)
-
+        
         step_time, loss = 0.0, 0.0
         words_seen, sents_seen = 0, 0
         start_time = time.time()
-
+        
         # Training loop
         print('Training..')
         for epoch_idx in range(FLAGS.max_epochs):
@@ -135,7 +133,7 @@ def train():
                 print('Training is already complete.', \
                       'current epoch:{}, max epoch:{}'.format(model.global_epoch_step.eval(), FLAGS.max_epochs))
                 break
-
+            
             for source_seq, target_seq in train_set.next():
                 # Get a batch from training parallel data
                 source, source_len, target, target_len = prepare_train_batch(source_seq, target_seq,
@@ -143,37 +141,36 @@ def train():
                 if source is None or target is None:
                     print('No samples under max_seq_length ', FLAGS.max_seq_length)
                     continue
-
+                
                 # Execute a single training step
-                step_loss, summary = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len, 
+                step_loss, summary = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len,
                                                  decoder_inputs=target, decoder_inputs_length=target_len)
-
+                
                 loss += float(step_loss) / FLAGS.display_freq
-                words_seen += float(np.sum(source_len+target_len))
-                sents_seen += float(source.shape[0]) # batch_size
-
+                words_seen += float(np.sum(source_len + target_len))
+                sents_seen += float(source.shape[0])  # batch_size
+                
                 if model.global_step.eval() % FLAGS.display_freq == 0:
-
                     avg_perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
-
+                    
                     time_elapsed = time.time() - start_time
                     step_time = time_elapsed / FLAGS.display_freq
-
+                    
                     words_per_sec = words_seen / time_elapsed
                     sents_per_sec = sents_seen / time_elapsed
-
+                    
                     print('Epoch ', model.global_epoch_step.eval(), 'Step ', model.global_step.eval(), \
                           'Perplexity {0:.2f}'.format(avg_perplexity), 'Step-time ', step_time, \
                           '{0:.2f} sents/s'.format(sents_per_sec), '{0:.2f} words/s'.format(words_per_sec))
-
+                    
                     loss = 0
                     words_seen = 0
                     sents_seen = 0
                     start_time = time.time()
-
+                    
                     # Record training summary for the current batch
                     log_writer.add_summary(summary, model.global_step.eval())
-
+                
                 # Execute a validation step
                 if valid_set and model.global_step.eval() % FLAGS.valid_freq == 0:
                     print('Validation step')
@@ -182,19 +179,19 @@ def train():
                     for source_seq, target_seq in valid_set.next():
                         # Get a batch from validation parallel data
                         source, source_len, target, target_len = prepare_train_batch(source_seq, target_seq)
-
+                        
                         # Compute validation loss: average per word cross entropy loss
                         step_loss, summary = model.eval(sess, encoder_inputs=source, encoder_inputs_length=source_len,
                                                         decoder_inputs=target, decoder_inputs_length=target_len)
                         batch_size = source.shape[0]
-
+                        
                         valid_loss += step_loss * batch_size
                         valid_sents_seen += batch_size
                         print('  {} samples seen'.format(valid_sents_seen))
-
+                    
                     valid_loss = valid_loss / valid_sents_seen
                     print('Valid perplexity: {0:.2f}'.format(math.exp(valid_loss)))
-
+                
                 # Save the model checkpoint
                 if model.global_step.eval() % FLAGS.save_freq == 0:
                     print('Saving the model..')
@@ -203,7 +200,7 @@ def train():
                     json.dump(model.config,
                               open('%s-%d.json' % (checkpoint_path, model.global_step.eval()), 'wb'),
                               indent=2)
-
+            
             # Increase the epoch index of the model
             model.global_epoch_step_op.eval()
             print('Epoch {0:} DONE'.format(model.global_epoch_step.eval()))
@@ -214,9 +211,8 @@ def train():
         json.dump(model.config,
                   open('%s-%d.json' % (checkpoint_path, model.global_step.eval()), 'w', encoding='utf-8'),
                   indent=2)
-        
+    
     print('Training Terminated')
-
 
 
 def main(_):

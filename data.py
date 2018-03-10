@@ -2,7 +2,7 @@ import sys
 
 sys.path.append('./data')
 
-from data_iterator import BiTextIterator, TextIterator
+from preprocess.iterator import BiTextIterator, TextIterator
 from train import FLAGS
 
 
@@ -12,7 +12,7 @@ def main():
                                source_dict=FLAGS.source_vocabulary,
                                target_dict=FLAGS.target_vocabulary,
                                batch_size=FLAGS.batch_size,
-                               maxlen=FLAGS.max_seq_length,
+                               max_length=FLAGS.max_seq_length,
                                n_words_source=FLAGS.num_encoder_symbols,
                                n_words_target=FLAGS.num_decoder_symbols,
                                shuffle_each_epoch=FLAGS.shuffle_each_epoch,
