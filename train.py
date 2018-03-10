@@ -1,28 +1,19 @@
 # !/usr/bin/env python
 # coding: utf-8
-import sys
-
-sys.path.append('data')
 import os
 import math
 import time
 import json
-import random
 from collections import OrderedDict
-
 import numpy as np
 import tensorflow as tf
-
-from preprocess.iterator import TextIterator, BiTextIterator
-
-from data.data_utils import prepare_train_batch
-
+from preprocess.iterator import BiTextIterator
 from model import Seq2SeqModel
 
 # Data loading parameters
 tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc/articles_vocabs.json', 'Path to source vocabulary')
 tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/nlpcc/summaries_vocabs.json', 'Path to target vocabulary')
-tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc/articles.train.txt', 'Path to source training data')
+tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc/articles.eval.txt', 'Path to source training data')
 tf.app.flags.DEFINE_string('target_train_data', 'dataset/nlpcc/summaries.train.txt', 'Path to target training data')
 tf.app.flags.DEFINE_string('source_valid_data', 'dataset/nlpcc/articles.eval.txt', 'Path to source validation data')
 tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc/summaries.eval.txt', 'Path to target validation data')
@@ -47,7 +38,7 @@ tf.app.flags.DEFINE_float('max_gradient_norm', 1.0, 'Clip gradients to this norm
 tf.app.flags.DEFINE_integer('batch_size', 28, 'Batch size')
 tf.app.flags.DEFINE_integer('max_epochs', 10, 'Maximum # of training epochs')
 tf.app.flags.DEFINE_integer('max_load_batches', 20, 'Maximum # of batches to load at one time')
-tf.app.flags.DEFINE_integer('max_seq_length', 50, 'Maximum sequence length')
+tf.app.flags.DEFINE_integer('max_seq_length', None, 'Maximum sequence length')
 tf.app.flags.DEFINE_integer('display_freq', 100, 'Display training status every this iteration')
 tf.app.flags.DEFINE_integer('save_freq', 11500, 'Save model checkpoint every this iteration')
 tf.app.flags.DEFINE_integer('valid_freq', 1150000, 'Evaluate model every this iteration: valid_data needed')
@@ -55,7 +46,7 @@ tf.app.flags.DEFINE_string('optimizer', 'adam', 'Optimizer for training: (adadel
 tf.app.flags.DEFINE_string('model_dir', 'model/', 'Path to save model checkpoints')
 tf.app.flags.DEFINE_string('model_name', 'translate.ckpt', 'File name used for model checkpoints')
 tf.app.flags.DEFINE_boolean('shuffle_each_epoch', False, 'Shuffle training dataset for each epoch')
-tf.app.flags.DEFINE_boolean('sort_by_length', True, 'Sort pre-fetched minibatches by their target sequence lengths')
+tf.app.flags.DEFINE_boolean('sort_by_length', False, 'Sort pre-fetched minibatches by their target sequence lengths')
 tf.app.flags.DEFINE_boolean('use_fp16', False, 'Use half precision float16 instead of float32 as dtype')
 
 # Runtime parameters

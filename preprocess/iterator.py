@@ -1,6 +1,6 @@
 import numpy as np
 import json
-import pickle as pkl
+import pickle
 import config
 
 extra_tokens = [config.GO, config.EOS, config.UNK]
@@ -16,7 +16,7 @@ def load_dict(filename):
             return json.load(f)
     except:
         with open(filename, 'r') as f:
-            return pkl.load(f)
+            return pickle.load(f)
 
 
 class TextIterator(object):
@@ -44,46 +44,26 @@ class TextIterator(object):
         self.sort_by_length = sort_by_length
         self.source_buffer = []
         self.end_of_data = False
-    
-    def __len__(self):
-        return sum([1 for _ in self.next()])
+        self.reset()
     
     def reset(self):
-        
         self.source.seek(0)
-    
-    def next(self):
-        if self.end_of_data:
-            self.end_of_data = False
-            self.reset()
-            raise StopIteration
-        
-        source = []
-        
+        self.end_of_data = False
         # fill buffer, if it's empty
         if len(self.source_buffer) == 0:
-            for k_ in range(self.k):
-                ss = self.source.readline()
-                if ss == "":
-                    break
-                self.source_buffer.append(ss.strip().split())
-            
+            for ss in self.source.readlines():
+                self.source_buffer.append(ss.strip().split('\t'))
             # sort by buffer
             if self.sort_by_length:
                 slen = np.array([len(s) for s in self.source_buffer])
                 sidx = slen.argsort()
-                
                 sbuf = [self.source_buffer[i] for i in sidx]
-                
                 self.source_buffer = sbuf
             else:
                 self.source_buffer.reverse()
-        
-        if len(self.source_buffer) == 0:
-            self.end_of_data = False
-            self.reset()
-            raise StopIteration
-        
+    
+    def next(self):
+        source = []
         try:
             # actual work here
             while True:
@@ -91,25 +71,23 @@ class TextIterator(object):
                 try:
                     ss = self.source_buffer.pop()
                 except IndexError:
+                    yield source
+                    self.end_of_data = True
                     break
                 ss = [self.source_dict[w] if w in self.source_dict
                       else unk_token for w in ss]
-                
                 if self.max_length and len(ss) > self.max_length:
                     continue
-                if self.skip_empty and (not ss):
+                if self.skip_empty and not ss:
                     continue
+                print('Source length', len(source))
                 source.append(ss)
-                
-                if len(source) >= self.batch_size:
-                    break
+                if len(source) >= self.batch_size or self.end_of_data:
+                    print('len', len(self.source_buffer))
+                    yield source
+                    source = []
         except IOError:
             self.end_of_data = True
-        
-        if len(source) == 0:
-            source = self.next()
-        
-        yield source
 
 
 class BiTextIterator(object):
@@ -122,12 +100,11 @@ class BiTextIterator(object):
                  n_words_source=-1,
                  n_words_target=-1,
                  skip_empty=False,
-                 shuffle_each_epoch=False,
                  sort_by_length=True,
                  encoding='utf-8'):
         
-        self.source = open(source, 'r')
-        self.target = open(target, 'r')
+        self.source = open(source, 'r', encoding=encoding)
+        self.target = open(target, 'r', encoding=encoding)
         
         self.source_dict = load_dict(source_dict)
         self.target_dict = load_dict(target_dict)
