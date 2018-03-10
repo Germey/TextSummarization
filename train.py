@@ -13,7 +13,7 @@ from model import Seq2SeqModel
 # Data loading parameters
 tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc/articles_vocabs.json', 'Path to source vocabulary')
 tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/nlpcc/summaries_vocabs.json', 'Path to target vocabulary')
-tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc/articles.eval.txt', 'Path to source training data')
+tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc/articles.train.txt', 'Path to source training data')
 tf.app.flags.DEFINE_string('target_train_data', 'dataset/nlpcc/summaries.train.txt', 'Path to target training data')
 tf.app.flags.DEFINE_string('source_valid_data', 'dataset/nlpcc/articles.eval.txt', 'Path to source validation data')
 tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc/summaries.eval.txt', 'Path to target validation data')

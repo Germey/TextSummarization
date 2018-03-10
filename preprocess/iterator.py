@@ -27,7 +27,8 @@ class TextIterator(object):
                  n_words_source=-1,
                  skip_empty=False,
                  sort_by_length=False,
-                 encoding='utf-8'):
+                 encoding='utf-8',
+                 split_sign='\t'):
         
         self.source = open(source, 'r', encoding=encoding)
         self.source_dict = load_dict(source_dict)
@@ -35,6 +36,7 @@ class TextIterator(object):
         self.max_length = max_length
         self.skip_empty = skip_empty
         self.n_words_source = n_words_source
+        self.split_sign = split_sign
         
         if self.n_words_source > 0:
             for key, idx in self.source_dict.items():
@@ -46,13 +48,17 @@ class TextIterator(object):
         self.end_of_data = False
         self.reset()
     
+    def length(self):
+        self.reset()
+        return len(self.source_buffer)
+    
     def reset(self):
         self.source.seek(0)
         self.end_of_data = False
         # fill buffer, if it's empty
         if len(self.source_buffer) == 0:
             for ss in self.source.readlines():
-                self.source_buffer.append(ss.strip().split('\t'))
+                self.source_buffer.append(ss.strip().split(self.split_sign))
             # sort by buffer
             if self.sort_by_length:
                 slen = np.array([len(s) for s in self.source_buffer])
@@ -63,31 +69,29 @@ class TextIterator(object):
                 self.source_buffer.reverse()
     
     def next(self):
+        """
+        get next batch
+        :return:
+        """
         source = []
-        try:
-            # actual work here
-            while True:
-                # read from source file and map to word index
-                try:
-                    ss = self.source_buffer.pop()
-                except IndexError:
-                    yield source
-                    self.end_of_data = True
-                    break
+        # actual work here
+        while not self.end_of_data:
+            ss = None
+            try:
+                ss = self.source_buffer.pop()
+            except IndexError:
+                self.end_of_data = True
+            if ss:
                 ss = [self.source_dict[w] if w in self.source_dict
                       else unk_token for w in ss]
                 if self.max_length and len(ss) > self.max_length:
                     continue
                 if self.skip_empty and not ss:
                     continue
-                print('Source length', len(source))
                 source.append(ss)
-                if len(source) >= self.batch_size or self.end_of_data:
-                    print('len', len(self.source_buffer))
-                    yield source
-                    source = []
-        except IOError:
-            self.end_of_data = True
+            if len(source) >= self.batch_size or self.end_of_data:
+                yield source
+                source = []
 
 
 class BiTextIterator(object):
@@ -101,7 +105,8 @@ class BiTextIterator(object):
                  n_words_target=-1,
                  skip_empty=False,
                  sort_by_length=True,
-                 encoding='utf-8'):
+                 encoding='utf-8',
+                 split_sign='\t'):
         
         self.source = open(source, 'r', encoding=encoding)
         self.target = open(target, 'r', encoding=encoding)
@@ -116,7 +121,7 @@ class BiTextIterator(object):
         self.n_words_source = n_words_source
         self.n_words_target = n_words_target
         
-        print(n_words_source, n_words_target)
+        self.split_sign = split_sign
         
         if self.n_words_source > 0:
             for key, idx in self.source_dict.items():
@@ -128,84 +133,70 @@ class BiTextIterator(object):
                 if idx >= self.n_words_target:
                     del self.target_dict[key]
         
-        self.shuffle = shuffle_each_epoch
         self.sort_by_length = sort_by_length
         
         self.source_buffer = []
         self.target_buffer = []
         
         self.end_of_data = False
-    
-    def __len__(self):
-        return sum([1 for _ in self.next()])
+        self.reset()
     
     def reset(self):
+        """
+        reset data, update buffer
+        :return:
+        """
         self.source.seek(0)
         self.target.seek(0)
-    
-    def next(self):
-        if self.end_of_data:
-            self.end_of_data = False
-            self.reset()
-            raise StopIteration
-        
-        source = []
-        target = []
         
         assert len(self.source_buffer) == len(self.target_buffer), 'Buffer size mismatch!'
         
         if len(self.source_buffer) == 0:
-            for k_ in range(self.k):
-                ss = self.source.readline()
-                if ss == "":
-                    break
-                tt = self.target.readline()
-                if tt == "":
-                    break
-                self.source_buffer.append(ss.strip().split())
-                self.target_buffer.append(tt.strip().split())
+            for ss in self.source.readlines():
+                self.source_buffer.append(ss.strip().split(self.split_sign))
+            for tt in self.target.readlines():
+                self.target_buffer.append(tt.strip().split(self.split_sign))
             
             # sort by target buffer
             if self.sort_by_length:
                 tlen = np.array([len(t) for t in self.target_buffer])
                 tidx = tlen.argsort()
-                
                 sbuf = [self.source_buffer[i] for i in tidx]
                 tbuf = [self.target_buffer[i] for i in tidx]
-                
                 self.source_buffer = sbuf
                 self.target_buffer = tbuf
-            
             else:
                 self.source_buffer.reverse()
                 self.target_buffer.reverse()
-        
-        if len(self.source_buffer) == 0 or len(self.target_buffer) == 0:
-            self.end_of_data = False
-            self.reset()
-            raise StopIteration
-        
-        try:
-            
-            # actual work here
-            while True:
-                
-                # read from source file and map to word index
-                try:
-                    ss = self.source_buffer.pop()
-                except IndexError:
-                    break
+    
+    def length(self):
+        """
+        get length of data
+        :return:
+        """
+        self.reset()
+        return len(self.source_buffer)
+    
+    def next(self):
+        """
+        get next batch
+        :return:
+        """
+        source, target = [], []
+        # actual work here
+        while not self.end_of_data:
+            ss, tt = None, None
+            try:
+                ss = self.source_buffer.pop()
+                tt = self.target_buffer.pop()
+            except IndexError:
+                self.end_of_data = True
+            if ss and tt:
+                # transfer to dict index
                 ss = [self.source_dict[w] if w in self.source_dict
                       else unk_token for w in ss]
-                
-                # read from source file and map to word index
-                tt = self.target_buffer.pop()
                 tt = [self.target_dict[w] if w in self.target_dict
                       else unk_token for w in tt]
-                if self.n_words_target > 0:
-                    tt = [w if w < self.n_words_target
-                          else unk_token for w in tt]
-                
                 if self.max_length:
                     if len(ss) > self.max_length and len(tt) > self.max_length:
                         continue
@@ -214,14 +205,7 @@ class BiTextIterator(object):
                 
                 source.append(ss)
                 target.append(tt)
-                
-                if len(source) >= self.batch_size or \
-                        len(target) >= self.batch_size:
-                    break
-        except IOError:
-            self.end_of_data = True
-        
-        if len(source) == 0 or len(target) == 0:
-            source, target = self.next()
-        
-        yield (source, target)
+            
+            if len(source) >= self.batch_size or len(target) >= self.batch_size or self.end_of_data:
+                yield source, target
+                source, target = [], []
