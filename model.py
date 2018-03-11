@@ -18,6 +18,8 @@ from tensorflow.python.util import nest
 from tensorflow.contrib.seq2seq.python.ops import attention_wrapper
 from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 
+from preprocess.iterator import start_token, end_token
+
 
 class Seq2SeqModel(object):
     def __init__(self, config, mode):
@@ -25,39 +27,43 @@ class Seq2SeqModel(object):
         assert mode.lower() in ['train', 'decode']
         
         self.config = config
+        
+        print('Config', config)
+        
         self.mode = mode.lower()
         
-        self.cell_type = config['cell_type']
-        self.hidden_units = config['hidden_units']
-        self.depth = config['depth']
-        self.attention_type = config['attention_type']
-        self.embedding_size = config['embedding_size']
+        self.cell_type = config.cell_type
+        self.hidden_units = config.hidden_units
+        self.depth = config.depth
+        self.attention_type = config.attention_type
+        self.embedding_size = config.embedding_size
         # self.bidirectional = config.bidirectional
         
-        self.num_encoder_symbols = config['num_encoder_symbols']
-        self.num_decoder_symbols = config['num_decoder_symbols']
+        self.num_encoder_symbols = config.num_encoder_symbols
+        self.num_decoder_symbols = config.num_decoder_symbols
         
-        self.use_residual = config['use_residual']
-        self.attn_input_feeding = config['attn_input_feeding']
-        self.use_dropout = config['use_dropout']
-        self.keep_prob = 1.0 - config['dropout_rate']
+        self.use_residual = config.use_residual
+        self.attn_input_feeding = config.attn_input_feeding
+        self.use_dropout = config.use_dropout
         
-        self.optimizer = config['optimizer']
-        self.learning_rate = config['learning_rate']
-        self.max_gradient_norm = config['max_gradient_norm']
+        self.keep_prob = 1.0 - config.dropout_rate
+        
+        self.optimizer = config.optimizer
+        self.learning_rate = config.learning_rate
+        self.max_gradient_norm = config.max_gradient_norm
         self.global_step = tf.Variable(0, trainable=False, name='global_step')
         self.global_epoch_step = tf.Variable(0, trainable=False, name='global_epoch_step')
         self.global_epoch_step_op = \
             tf.assign(self.global_epoch_step, self.global_epoch_step + 1)
         
-        self.dtype = tf.float16 if config['use_fp16'] else tf.float32
+        self.dtype = tf.float16 if config.use_fp16 else tf.float32
         self.keep_prob_placeholder = tf.placeholder(self.dtype, shape=[], name='keep_prob')
         
         self.use_beamsearch_decode = False
         if self.mode == 'decode':
-            self.beam_width = config['beam_width']
+            self.beam_width = config.beam_width
             self.use_beamsearch_decode = True if self.beam_width > 1 else False
-            self.max_decode_step = config['max_decode_step']
+            self.max_decode_step = config.max_decode_step
         
         self.build_model()
     
@@ -92,9 +98,9 @@ class Seq2SeqModel(object):
                 dtype=tf.int32, shape=(None,), name='decoder_inputs_length')
             
             decoder_start_token = tf.ones(
-                shape=[self.batch_size, 1], dtype=tf.int32) * data_utils.start_token
+                shape=[self.batch_size, 1], dtype=tf.int32) * start_token
             decoder_end_token = tf.ones(
-                shape=[self.batch_size, 1], dtype=tf.int32) * data_utils.end_token
+                shape=[self.batch_size, 1], dtype=tf.int32) * end_token
             
             # decoder_inputs_train: [batch_size , max_time_steps + 1]
             # insert _GO symbol in front of each decoder input
@@ -227,8 +233,8 @@ class Seq2SeqModel(object):
             elif self.mode == 'decode':
                 
                 # Start_tokens: [batch_size,] `int32` vector
-                start_tokens = tf.ones([self.batch_size, ], tf.int32) * data_utils.start_token
-                end_token = data_utils.end_token
+                start_tokens = tf.ones([self.batch_size, ], tf.int32) * start_token
+                end_token = end_token
                 
                 def embed_and_input_proj(inputs):
                     return input_layer(tf.nn.embedding_lookup(self.decoder_embeddings, inputs))

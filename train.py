@@ -9,8 +9,10 @@ import numpy as np
 import tensorflow as tf
 from preprocess.iterator import BiTextIterator
 from model import Seq2SeqModel
-
+import config
 # Data loading parameters
+from utils import prepare_train_batch
+
 tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc/articles_vocabs.json', 'Path to source vocabulary')
 tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/nlpcc/summaries_vocabs.json', 'Path to target vocabulary')
 tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc/articles.train.txt', 'Path to source training data')
@@ -24,8 +26,8 @@ tf.app.flags.DEFINE_string('attention_type', 'bahdanau', 'Attention mechanism: (
 tf.app.flags.DEFINE_integer('hidden_units', 1024, 'Number of hidden units in each layer')
 tf.app.flags.DEFINE_integer('depth', 2, 'Number of layers in each encoder and decoder')
 tf.app.flags.DEFINE_integer('embedding_size', 500, 'Embedding dimensions of encoder and decoder inputs')
-tf.app.flags.DEFINE_integer('num_encoder_symbols', 30000, 'Source vocabulary size')
-tf.app.flags.DEFINE_integer('num_decoder_symbols', 30000, 'Target vocabulary size')
+tf.app.flags.DEFINE_integer('num_encoder_symbols', config.VOCABS_SIZE_LIMIT, 'Source vocabulary size')
+tf.app.flags.DEFINE_integer('num_decoder_symbols', config.VOCABS_SIZE_LIMIT, 'Target vocabulary size')
 
 tf.app.flags.DEFINE_boolean('use_residual', True, 'Use residual connection between layers')
 tf.app.flags.DEFINE_boolean('attn_input_feeding', False, 'Use input feeding method in attentional decoder')
@@ -36,7 +38,7 @@ tf.app.flags.DEFINE_float('dropout_rate', 0.3, 'Dropout probability for input/ou
 tf.app.flags.DEFINE_float('learning_rate', 0.0002, 'Learning rate')
 tf.app.flags.DEFINE_float('max_gradient_norm', 1.0, 'Clip gradients to this norm')
 tf.app.flags.DEFINE_integer('batch_size', 28, 'Batch size')
-tf.app.flags.DEFINE_integer('max_epochs', 10, 'Maximum # of training epochs')
+tf.app.flags.DEFINE_integer('max_epochs', 10000, 'Maximum # of training epochs')
 tf.app.flags.DEFINE_integer('max_load_batches', 20, 'Maximum # of batches to load at one time')
 tf.app.flags.DEFINE_integer('max_seq_length', None, 'Maximum sequence length')
 tf.app.flags.DEFINE_integer('display_freq', 100, 'Display training status every this iteration')
@@ -57,7 +59,7 @@ FLAGS = tf.app.flags.FLAGS
 
 
 def create_model(session, FLAGS):
-    config = OrderedDict(sorted(FLAGS.__flags.items()))
+    config = FLAGS
     model = Seq2SeqModel(config, 'train')
     
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_dir)
@@ -85,9 +87,8 @@ def train():
                                max_length=FLAGS.max_seq_length,
                                n_words_source=FLAGS.num_encoder_symbols,
                                n_words_target=FLAGS.num_decoder_symbols,
-                               shuffle_each_epoch=FLAGS.shuffle_each_epoch,
-                               sort_by_length=FLAGS.sort_by_length,
-                               maxibatch_size=FLAGS.max_load_batches)
+                               sort_by_length=FLAGS.sort_by_length
+                               )
     
     if FLAGS.source_valid_data and FLAGS.target_valid_data:
         print('Loading validation data..')
@@ -96,7 +97,6 @@ def train():
                                    source_dict=FLAGS.source_vocabulary,
                                    target_dict=FLAGS.target_vocabulary,
                                    batch_size=FLAGS.batch_size,
-                                   maxlen=None,
                                    n_words_source=FLAGS.num_encoder_symbols,
                                    n_words_target=FLAGS.num_decoder_symbols)
     else:
@@ -121,7 +121,7 @@ def train():
         print('Training..')
         for epoch_idx in range(FLAGS.max_epochs):
             if model.global_epoch_step.eval() >= FLAGS.max_epochs:
-                print('Training is already complete.', \
+                print('Training is already complete.',
                       'current epoch:{}, max epoch:{}'.format(model.global_epoch_step.eval(), FLAGS.max_epochs))
                 break
             
@@ -129,6 +129,10 @@ def train():
                 # Get a batch from training parallel data
                 source, source_len, target, target_len = prepare_train_batch(source_seq, target_seq,
                                                                              FLAGS.max_seq_length)
+                print('Get Data', source.shape, target.shape, source_len, target_len)
+                
+                print('Data', source[0], target[0], source_len[0], target_len[0])
+                
                 if source is None or target is None:
                     print('No samples under max_seq_length ', FLAGS.max_seq_length)
                     continue
@@ -150,8 +154,8 @@ def train():
                     words_per_sec = words_seen / time_elapsed
                     sents_per_sec = sents_seen / time_elapsed
                     
-                    print('Epoch ', model.global_epoch_step.eval(), 'Step ', model.global_step.eval(), \
-                          'Perplexity {0:.2f}'.format(avg_perplexity), 'Step-time ', step_time, \
+                    print('Epoch ', model.global_epoch_step.eval(), 'Step ', model.global_step.eval(),
+                          'Perplexity {0:.2f}'.format(avg_perplexity), 'Step-time ', step_time,
                           '{0:.2f} sents/s'.format(sents_per_sec), '{0:.2f} words/s'.format(words_per_sec))
                     
                     loss = 0

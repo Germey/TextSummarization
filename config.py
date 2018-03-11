@@ -60,7 +60,7 @@ GO = 'GO'
 EOS = 'EOS'  # also function as PAD
 UNK = 'UNK'
 
-VOCABS_SIZE_LIMIT = 50000
+VOCABS_SIZE_LIMIT = 30000
 
 DATASET_OUTPUT_FOLDER = join('dataset', 'nlpcc')
 

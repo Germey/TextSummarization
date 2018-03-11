@@ -11,7 +11,7 @@ def main():
                              sort_by_length=FLAGS.sort_by_length,
                              )
     for source in train_set.next():
-        print('S', len(source))
+        print('Length', len(source))
     print(train_set.length())
     
     train_set = BiTextIterator(source=FLAGS.source_valid_data,
@@ -23,8 +23,7 @@ def main():
                                sort_by_length=FLAGS.sort_by_length,
                                )
     for source, target in train_set.next():
-        print('S', len(source), len(target))
-    print(train_set.length())
+        print('Length', len(source), len(target))
 
 
 if __name__ == '__main__':
