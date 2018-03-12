@@ -126,6 +126,16 @@ class CharPipeline(Pipeline):
         return config.SEGMENT_JOIN_FLAG.join(list(text))
 
 
+class MaxPipeline(Pipeline):
+    def process_text(self, text):
+        """
+        max cut
+        :param text: text before cut
+        :return: text after cut
+        """
+        return text[:config.MAX_LENGTH]
+
+
 class HalfWidthPipeline(Pipeline):
     def f2h(self, f_str):
         """

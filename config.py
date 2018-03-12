@@ -14,6 +14,7 @@ ENABLE_PIPELINES = [
     HalfWidthPipeline,
     LowerPipeline,
     ReplacePipeline,
+    MaxPipeline,
     CharPipeline,
 ]
 
@@ -66,3 +67,5 @@ DATASET_OUTPUT_FOLDER = join('dataset', 'nlpcc_char')
 
 if not exists(DATASET_OUTPUT_FOLDER):
     makedirs(DATASET_OUTPUT_FOLDER)
+
+MAX_LENGTH = 1500
