@@ -140,10 +140,13 @@ def train():
                 # Execute a single training step
                 step_loss, summary = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len,
                                                  decoder_inputs=target, decoder_inputs_length=target_len)
+                print('Loss')
                 
                 loss += float(step_loss) / FLAGS.display_freq
                 words_seen += float(np.sum(source_len + target_len))
                 sents_seen += float(source.shape[0])  # batch_size
+                
+                print('Epoch', model.global_epoch_step.eval())
                 
                 if model.global_step.eval() % FLAGS.display_freq == 0:
                     avg_perplexity = math.exp(float(loss)) if loss < 300 else float("inf")

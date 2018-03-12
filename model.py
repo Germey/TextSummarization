@@ -448,6 +448,8 @@ class Seq2SeqModel(object):
         if self.mode.lower() != 'train':
             raise ValueError("train step can only be operated in train mode")
         
+        print('Train')
+        
         input_feed = self.check_feeds(encoder_inputs, encoder_inputs_length,
                                       decoder_inputs, decoder_inputs_length, False)
         # Input feeds for dropout
@@ -458,6 +460,9 @@ class Seq2SeqModel(object):
                        self.summary_op]  # Training summary
         
         outputs = sess.run(output_feed, input_feed)
+        
+        print(outputs)
+        
         return outputs[1], outputs[2]  # loss, summary
     
     def eval(self, sess, encoder_inputs, encoder_inputs_length,
