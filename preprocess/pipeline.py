@@ -99,7 +99,7 @@ class EmailPipeline(Pipeline):
         return re.sub(config.EMAIL_REGEX, config.EMAIL_PLACEHOLDER, text, flags=re.S)
 
 
-class SegmentPipeline(Pipeline):
+class JiebaPipeline(Pipeline):
     def __init__(self):
         """
         add user dict
@@ -114,6 +114,16 @@ class SegmentPipeline(Pipeline):
         :return: text joined with flag after segment
         """
         return config.SEGMENT_JOIN_FLAG.join(jieba.cut(text))
+
+
+class CharPipeline(Pipeline):
+    def process_text(self, text):
+        """
+        segment cut
+        :param text: text before segment cut
+        :return: text joined with flag after segment
+        """
+        return config.SEGMENT_JOIN_FLAG.join(list(text))
 
 
 class HalfWidthPipeline(Pipeline):
