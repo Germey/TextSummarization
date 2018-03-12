@@ -130,7 +130,7 @@ def train():
                 source, source_len, target, target_len = prepare_train_batch(source_seq, target_seq,
                                                                              FLAGS.max_seq_length)
                 # print('Get Data', source.shape, target.shape, source_len, target_len)
-                print('Get Data')
+                print('Get Data', source.shape, target.shape)
                 # print('Data', source[0], target[0], source_len[0], target_len[0])
                 
                 if source is None or target is None:
@@ -144,8 +144,6 @@ def train():
                 loss += float(step_loss) / FLAGS.display_freq
                 words_seen += float(np.sum(source_len + target_len))
                 sents_seen += float(source.shape[0])  # batch_size
-                
-                print('Epoch', model.global_epoch_step.eval())
                 
                 if model.global_step.eval() % FLAGS.display_freq == 0:
                     avg_perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
