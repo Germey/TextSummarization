@@ -41,9 +41,9 @@ tf.app.flags.DEFINE_integer('batch_size', 28, 'Batch size')
 tf.app.flags.DEFINE_integer('max_epochs', 10000, 'Maximum # of training epochs')
 tf.app.flags.DEFINE_integer('max_load_batches', 20, 'Maximum # of batches to load at one time')
 tf.app.flags.DEFINE_integer('max_seq_length', 1500, 'Maximum sequence length')
-tf.app.flags.DEFINE_integer('display_freq', 100, 'Display training status every this iteration')
-tf.app.flags.DEFINE_integer('save_freq', 11500, 'Save model checkpoint every this iteration')
-tf.app.flags.DEFINE_integer('valid_freq', 1150000, 'Evaluate model every this iteration: valid_data needed')
+tf.app.flags.DEFINE_integer('display_freq', 5, 'Display training status every this iteration')
+tf.app.flags.DEFINE_integer('save_freq', 500, 'Save model checkpoint every this iteration')
+tf.app.flags.DEFINE_integer('valid_freq', 500, 'Evaluate model every this iteration: valid_data needed')
 tf.app.flags.DEFINE_string('optimizer', 'adam', 'Optimizer for training: (adadelta, adam, rmsprop)')
 tf.app.flags.DEFINE_string('model_dir', 'model/', 'Path to save model checkpoints')
 tf.app.flags.DEFINE_string('model_name', 'summary.ckpt', 'File name used for model checkpoints')
@@ -129,9 +129,9 @@ def train():
                 # Get a batch from training parallel data
                 source, source_len, target, target_len = prepare_train_batch(source_seq, target_seq,
                                                                              FLAGS.max_seq_length)
-                print('Get Data', source.shape, target.shape, source_len, target_len)
-                
-                print('Data', source[0], target[0], source_len[0], target_len[0])
+                # print('Get Data', source.shape, target.shape, source_len, target_len)
+                print('Get Data')
+                # print('Data', source[0], target[0], source_len[0], target_len[0])
                 
                 if source is None or target is None:
                     print('No samples under max_seq_length ', FLAGS.max_seq_length)
@@ -140,7 +140,6 @@ def train():
                 # Execute a single training step
                 step_loss, summary = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len,
                                                  decoder_inputs=target, decoder_inputs_length=target_len)
-                print('Loss')
                 
                 loss += float(step_loss) / FLAGS.display_freq
                 words_seen += float(np.sum(source_len + target_len))
