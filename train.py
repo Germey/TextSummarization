@@ -16,9 +16,12 @@ from utils import prepare_train_batch
 tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc_char/articles_vocabs.json', 'Path to source vocabulary')
 tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/nlpcc_char/summaries_vocabs.json', 'Path to target vocabulary')
 tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc_char/articles.train.txt', 'Path to source training data')
-tf.app.flags.DEFINE_string('target_train_data', 'dataset/nlpcc_char/summaries.train.txt', 'Path to target training data')
-tf.app.flags.DEFINE_string('source_valid_data', 'dataset/nlpcc_char/articles.eval.txt', 'Path to source validation data')
-tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc_char/summaries.eval.txt', 'Path to target validation data')
+tf.app.flags.DEFINE_string('target_train_data', 'dataset/nlpcc_char/summaries.train.txt',
+                           'Path to target training data')
+tf.app.flags.DEFINE_string('source_valid_data', 'dataset/nlpcc_char/articles.eval.txt',
+                           'Path to source validation data')
+tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc_char/summaries.eval.txt',
+                           'Path to target validation data')
 
 # Network parameters
 tf.app.flags.DEFINE_string('cell_type', 'lstm', 'RNN cell for encoder and decoder, default: lstm')
@@ -192,7 +195,7 @@ def train():
                     print('Saving the model..')
                     checkpoint_path = os.path.join(FLAGS.model_dir, FLAGS.model_name)
                     model.save(sess, checkpoint_path, global_step=model.global_step)
-                    json.dump(model.config,
+                    json.dump(model.config.flag_values_dict(),
                               open('%s-%d.json' % (checkpoint_path, model.global_step.eval()), 'wb'),
                               indent=2)
             
