@@ -3,36 +3,25 @@
 
 import sys
 
+from preprocess.iterator import TextIterator
+from utils import prepare_batch, load_inverse_dict, seq2words
+
 sys.path.append('data')
 
-import os
-import math
-import time
 import json
-import random
 
-from collections import OrderedDict
-
-import numpy as np
 import tensorflow as tf
 
-from data.data_iterator import TextIterator
-
-import data.util as util
-import data.data_utils as data_utils
-from data.data_utils import prepare_batch
-from data.data_utils import prepare_train_batch
-
-from seq2seq_model import Seq2SeqModel
+from model import Seq2SeqModel
 
 # Decoding parameters
-tf.app.flags.DEFINE_integer('beam_width', 2, 'Beam width used in beam search')
-tf.app.flags.DEFINE_integer('decode_batch_size', 28, 'Batch size used for decoding')
+tf.app.flags.DEFINE_integer('beam_width', 1, 'Beam width used in beam search')
+tf.app.flags.DEFINE_integer('decode_batch_size', 1, 'Batch size used for decoding')
 tf.app.flags.DEFINE_integer('max_decode_step', 50, 'Maximum time step limit to decode')
 tf.app.flags.DEFINE_boolean('write_n_best', False, 'Write n-best list (n=beam_width)')
-tf.app.flags.DEFINE_string('model_path', 'model/translate.ckpt-5', 'Path to a specific model checkpoint.')
-tf.app.flags.DEFINE_string('decode_input', 'data/sample.shuf.decode.en', 'Decoding input path')
-tf.app.flags.DEFINE_string('decode_output', 'data/sample.shuf.decode.fr', 'Decoding output path')
+tf.app.flags.DEFINE_string('model_path', 'model/summary.ckpt-1000', 'Path to a specific model checkpoint.')
+tf.app.flags.DEFINE_string('decode_input', 'dataset/nlpcc_char/articles.eval.txt', 'Decoding input path')
+tf.app.flags.DEFINE_string('decode_output', 'dataset/nlpcc_char/articles.decode.txt', 'Decoding output path')
 
 # Runtime parameters
 tf.app.flags.DEFINE_boolean('allow_soft_placement', True, 'Allow device soft placement')
@@ -43,9 +32,8 @@ FLAGS = tf.app.flags.FLAGS
 
 def load_config(FLAGS):
     config = json.load(open('%s.json' % FLAGS.model_path, 'r'))
-    for key, value in FLAGS.__flags.items():
+    for key, value in FLAGS.flag_values_dict().items():
         config[key] = value
-    
     return config
 
 
@@ -63,16 +51,15 @@ def load_model(session, config):
 def decode():
     # Load model config
     config = load_config(FLAGS)
-    
+    print(config)
     # Load source data to decode
     test_set = TextIterator(source=config['decode_input'],
                             batch_size=config['decode_batch_size'],
                             source_dict=config['source_vocabulary'],
-                            maxlen=None,
                             n_words_source=config['num_encoder_symbols'])
     
     # Load inverse dictionary used in decoding
-    target_inverse_dict = data_utils.load_inverse_dict(config['target_vocabulary'])
+    target_inverse_dict = load_inverse_dict(config['target_vocabulary'])
     
     # Initiate TF session
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
@@ -84,10 +71,10 @@ def decode():
         try:
             print('Decoding {}..'.format(FLAGS.decode_input))
             if FLAGS.write_n_best:
-                fout = [data_utils.fopen(("%s_%d" % (FLAGS.decode_output, k)), 'w') \
+                fout = [open(("%s_%d" % (FLAGS.decode_output, k)), 'w') \
                         for k in range(FLAGS.beam_width)]
             else:
-                fout = [data_utils.fopen(FLAGS.decode_output, 'w')]
+                fout = [open(FLAGS.decode_output, 'w')]
             
             for idx, source_seq in enumerate(test_set.next()):
                 print('Source', source_seq)
@@ -101,7 +88,8 @@ def decode():
                 # Write decoding results
                 for k, f in reversed(list(enumerate(fout))):
                     for seq in predicted_ids:
-                        f.write(str(data_utils.seq2words(seq[:, k], target_inverse_dict)) + '\n')
+                        f.write(str(seq2words(seq[:, k], target_inverse_dict)) + '\n')
+                        f.flush()
                     if not FLAGS.write_n_best:
                         break
                 print('{}th line decoded'.format(idx * FLAGS.decode_batch_size))

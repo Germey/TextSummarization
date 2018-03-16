@@ -1,5 +1,41 @@
+import json
+
+from config import UNK
 from preprocess.iterator import end_token
 import numpy as np
+import pickle
+
+
+def load_dict(filename):
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except:
+        with open(filename, 'r') as f:
+            return pickle.load(f)
+
+
+def load_inverse_dict(dict_path):
+    orig_dict = load_dict(dict_path)
+    idict = {}
+    try:
+        for words, idx in orig_dict.iteritems():
+            idict[idx] = words
+    except:
+        for words, idx in orig_dict.items():
+            idict[idx] = words
+    return idict
+
+def seq2words(seq, inverse_target_dictionary):
+    words = []
+    for w in seq:
+        if w == end_token:
+            break
+        if w in inverse_target_dictionary:
+            words.append(inverse_target_dictionary[w])
+        else:
+            words.append(UNK)
+    return ' '.join(words)
 
 # batch preparation of a given sequence
 def prepare_batch(seqs_x, maxlen=None):

@@ -32,38 +32,38 @@ class Seq2SeqModel(object):
         
         self.mode = mode.lower()
         
-        self.cell_type = config.cell_type
-        self.hidden_units = config.hidden_units
-        self.depth = config.depth
-        self.attention_type = config.attention_type
-        self.embedding_size = config.embedding_size
+        self.cell_type = config['cell_type']
+        self.hidden_units = config['hidden_units']
+        self.depth = config['depth']
+        self.attention_type = config['attention_type']
+        self.embedding_size = config['embedding_size']
         # self.bidirectional = config.bidirectional
         
-        self.num_encoder_symbols = config.num_encoder_symbols
-        self.num_decoder_symbols = config.num_decoder_symbols
+        self.num_encoder_symbols = config['num_encoder_symbols']
+        self.num_decoder_symbols = config['num_decoder_symbols']
         
-        self.use_residual = config.use_residual
-        self.attn_input_feeding = config.attn_input_feeding
-        self.use_dropout = config.use_dropout
+        self.use_residual = config['use_residual']
+        self.attn_input_feeding = config['attn_input_feeding']
+        self.use_dropout = config['use_dropout']
         
-        self.keep_prob = 1.0 - config.dropout_rate
+        self.keep_prob = 1.0 - config['dropout_rate']
         
-        self.optimizer = config.optimizer
-        self.learning_rate = config.learning_rate
-        self.max_gradient_norm = config.max_gradient_norm
+        self.optimizer = config['optimizer']
+        self.learning_rate = config['learning_rate']
+        self.max_gradient_norm = config['max_gradient_norm']
         self.global_step = tf.Variable(0, trainable=False, name='global_step')
         self.global_epoch_step = tf.Variable(0, trainable=False, name='global_epoch_step')
         self.global_epoch_step_op = \
             tf.assign(self.global_epoch_step, self.global_epoch_step + 1)
         
-        self.dtype = tf.float16 if config.use_fp16 else tf.float32
+        self.dtype = tf.float16 if config['use_fp16'] else tf.float32
         self.keep_prob_placeholder = tf.placeholder(self.dtype, shape=[], name='keep_prob')
         
         self.use_beamsearch_decode = False
         if self.mode == 'decode':
-            self.beam_width = config.beam_width
+            self.beam_width = config['beam_width']
             self.use_beamsearch_decode = True if self.beam_width > 1 else False
-            self.max_decode_step = config.max_decode_step
+            self.max_decode_step = config['max_decode_step']
         
         self.build_model()
     
@@ -234,7 +234,6 @@ class Seq2SeqModel(object):
                 
                 # Start_tokens: [batch_size,] `int32` vector
                 start_tokens = tf.ones([self.batch_size, ], tf.int32) * start_token
-                end_token = end_token
                 
                 def embed_and_input_proj(inputs):
                     return input_layer(tf.nn.embedding_lookup(self.decoder_embeddings, inputs))
@@ -447,7 +446,6 @@ class Seq2SeqModel(object):
         # Check if the model is 'training' mode
         if self.mode.lower() != 'train':
             raise ValueError("train step can only be operated in train mode")
-        
         
         input_feed = self.check_feeds(encoder_inputs, encoder_inputs_length,
                                       decoder_inputs, decoder_inputs_length, False)

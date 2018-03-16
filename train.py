@@ -62,7 +62,7 @@ FLAGS = tf.app.flags.FLAGS
 
 
 def create_model(session, FLAGS):
-    config = FLAGS
+    config = FLAGS.flag_values_dict()
     model = Seq2SeqModel(config, 'train')
     
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_dir)
@@ -122,6 +122,8 @@ def train():
         
         # Training loop
         print('Training..')
+        
+        
         for epoch_idx in range(FLAGS.max_epochs):
             if model.global_epoch_step.eval() >= FLAGS.max_epochs:
                 print('Training is already complete.',
@@ -196,7 +198,7 @@ def train():
                     checkpoint_path = os.path.join(FLAGS.model_dir, FLAGS.model_name)
                     model.save(sess, checkpoint_path, global_step=model.global_step)
                     json.dump(model.config.flag_values_dict(),
-                              open('%s-%d.json' % (checkpoint_path, model.global_step.eval()), 'wb'),
+                              open('%s-%d.json' % (checkpoint_path, model.global_step.eval()), 'w'),
                               indent=2)
             
             # Increase the epoch index of the model
