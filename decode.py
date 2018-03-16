@@ -1,17 +1,9 @@
 # !/usr/bin/env python
 # coding: utf-8
-
-import sys
-
 from preprocess.iterator import TextIterator
 from utils import prepare_batch, load_inverse_dict, seq2words
-
-sys.path.append('data')
-
 import json
-
 import tensorflow as tf
-
 from model import Seq2SeqModel
 
 # Decoding parameters
