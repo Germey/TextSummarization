@@ -46,47 +46,61 @@ class StripPipeline(Pipeline):
 
 
 class UrlPipeline(Pipeline):
+    def __init__(self, regex=config.URL_REGEX, placeholder=config.URL_PLACEHOLDER):
+        self.regex = regex
+        self.placeholder = placeholder
+    
     def process_text(self, text):
         """
         change url to placeholder
         :param text: text containing url
         :return: text containing url placeholder
         """
-        return re.sub(config.URL_REGEX, config.URL_PLACEHOLDER, text, flags=re.S)
+        return re.sub(self.regex, self.placeholder, text, flags=re.S)
 
 
 class RemovePipeline(Pipeline):
+    def __init__(self, patterns=config.REMOVE_PATTERNS):
+        self.patterns = patterns
+    
     def process_text(self, text):
         """
         remote content from text
         :param text: text before remove
         :return: text after remove
         """
-        for pattern in config.REMOVE_PATTERNS:
+        for pattern in self.patterns:
             text = re.sub(pattern, '', text, flags=re.S)
         return text
 
 
 class ReplacePipeline(Pipeline):
+    def __init__(self, patterns=config.REPLACE_PATTERNS):
+        self.patterns = patterns
+    
     def process_text(self, text):
         """
         replace content from text
         :param text: text before replacement
         :return: text after replacement
         """
-        for pattern in config.REPLACE_PATTERNS:
+        for pattern in self.patterns:
             text = re.sub(pattern[0], pattern[1], text, flags=re.S)
         return text
 
 
 class PhonePipeline(Pipeline):
+    def __init__(self, regex=config.PHONE_REGEX, placeholder=config.PHONE_PLACEHOLDER):
+        self.regex = regex
+        self.placeholder = placeholder
+    
     def process_text(self, text):
         """
         change phone to placeholder
         :param text: text containing phone
         :return: text containing phone placeholder
         """
-        return re.sub(config.PHONE_REGEX, config.PHONE_PLACEHOLDER, text, flags=re.S)
+        return re.sub(self.regex, self.placeholder, text, flags=re.S)
 
 
 class EmailPipeline(Pipeline):
@@ -100,11 +114,13 @@ class EmailPipeline(Pipeline):
 
 
 class JiebaPipeline(Pipeline):
-    def __init__(self):
+    def __init__(self, join_flag=config.SEGMENT_JOIN_FLAG, words=config.SEGMENT_WORDS):
         """
         add user dict
         """
-        for word in config.SEGMENT_WORDS:
+        self.join_flag = join_flag
+        self.words = words
+        for word in self.words:
             jieba.add_word(word)
     
     def process_text(self, text):
@@ -113,27 +129,33 @@ class JiebaPipeline(Pipeline):
         :param text: text before segment cut
         :return: text joined with flag after segment
         """
-        return config.SEGMENT_JOIN_FLAG.join(jieba.cut(text))
+        return self.join_flag.join(jieba.cut(text))
 
 
 class CharPipeline(Pipeline):
+    def __init__(self, join_flag=config.SEGMENT_JOIN_FLAG):
+        self.join_flag = join_flag
+    
     def process_text(self, text):
         """
         segment cut
         :param text: text before segment cut
         :return: text joined with flag after segment
         """
-        return config.SEGMENT_JOIN_FLAG.join(list(text))
+        return self.join_flag.join(list(text))
 
 
 class MaxPipeline(Pipeline):
+    def __init__(self, max_length=config.MAX_LENGTH):
+        self.max_length = max_length
+    
     def process_text(self, text):
         """
         max cut
         :param text: text before cut
         :return: text after cut
         """
-        return text[:config.MAX_LENGTH]
+        return text[:self.max_length]
 
 
 class HalfWidthPipeline(Pipeline):

@@ -65,7 +65,6 @@ VOCABS_SIZE_LIMIT = 30000
 
 DATASET_OUTPUT_FOLDER = join('dataset', 'nlpcc_char')
 
-if not exists(DATASET_OUTPUT_FOLDER):
-    makedirs(DATASET_OUTPUT_FOLDER)
+
 
 MAX_LENGTH = 1000

@@ -2,6 +2,11 @@ from config import ENABLE_PIPELINES, VOCABS_SIZE_LIMIT, DATASET_OUTPUT_FOLDER
 from preprocess.writer import Writer
 from preprocess.vocab import VocabTransformer
 import json
+from os.path import exists, join
+from os import makedirs
+
+if not exists(DATASET_OUTPUT_FOLDER):
+    makedirs(DATASET_OUTPUT_FOLDER)
 
 # file = './data/nlpcc/toutiao4nlpcc/train_without_summ.txt'
 
