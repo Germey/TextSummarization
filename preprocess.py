@@ -1,19 +1,33 @@
-from config import ENABLE_PIPELINES, VOCABS_SIZE_LIMIT, DATASET_OUTPUT_FOLDER
 from preprocess.writer import Writer
 from preprocess.vocab import VocabTransformer
 import json
 from os.path import exists, join
 from os import makedirs
+from preprocess.pipeline import *
 
-if not exists(DATASET_OUTPUT_FOLDER):
-    makedirs(DATASET_OUTPUT_FOLDER)
+output_dir = join('dataset', 'nlpcc_char')
+vocab_size_limit = 30000
 
-# file = './data/nlpcc/toutiao4nlpcc/train_without_summ.txt'
+# pipelines enabled
+if not exists(output_dir):
+    makedirs(output_dir)
 
 # pipelines and writer to process data
-pipelines = [pipeline() for pipeline in ENABLE_PIPELINES]
-writer = Writer(folder=DATASET_OUTPUT_FOLDER)
-vocab_transformer = VocabTransformer(limit=VOCABS_SIZE_LIMIT)
+pipelines = [
+    StripPipeline(),
+    PhonePipeline(),
+    EmailPipeline(),
+    UrlPipeline(),
+    RemovePipeline(),
+    HalfWidthPipeline(),
+    LowerPipeline(),
+    ReplacePipeline(),
+    MaxPipeline(),
+    CharPipeline(),
+]
+
+writer = Writer(folder=output_dir)
+vocab_transformer = VocabTransformer(limit=vocab_size_limit)
 
 # train
 file = './source/nlpcc/toutiao4nlpcc/train_with_summ.txt'

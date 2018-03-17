@@ -15,6 +15,8 @@ model/
 .Python
 build/
 develop-eggs/
+word2vec/word2vec.model
+word2vec/word2vec.vector
 dist/
 downloads/
 eggs/

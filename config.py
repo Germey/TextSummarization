@@ -1,24 +1,5 @@
-from preprocess.pipeline import *
-from os.path import exists, join
-from os import makedirs
+from os.path import join
 
-__all__ = ['*']
-
-# pipelines enabled
-ENABLE_PIPELINES = [
-    StripPipeline,
-    PhonePipeline,
-    EmailPipeline,
-    UrlPipeline,
-    RemovePipeline,
-    HalfWidthPipeline,
-    LowerPipeline,
-    ReplacePipeline,
-    MaxPipeline,
-    CharPipeline,
-]
-
-# configs
 URL_PLACEHOLDER = 'url'
 
 URL_REGEX = '(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9]\.[^\s]{2,})'
@@ -60,11 +41,5 @@ SEGMENT_WORDS = [
 GO = 'GO'
 EOS = 'EOS'  # also function as PAD
 UNK = 'UNK'
-
-VOCABS_SIZE_LIMIT = 30000
-
-DATASET_OUTPUT_FOLDER = join('dataset', 'nlpcc_char')
-
-
 
 MAX_LENGTH = 1000

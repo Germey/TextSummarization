@@ -1,22 +1,23 @@
-from preprocess.writer import Writer
-from preprocess.vocab import VocabTransformer
 import json
 from preprocess.pipeline import *
+from preprocess.writer import Writer
 
-ENABLE_PIPELINES = [
-    StripPipeline,
-    PhonePipeline,
-    EmailPipeline,
-    UrlPipeline,
-    RemovePipeline,
-    HalfWidthPipeline,
-    LowerPipeline,
-    ReplacePipeline,
-    MaxPipeline,
-    JiebaPipeline,
+folder = './dataset/nlpcc'
+
+writer = Writer(folder=folder)
+
+pipelines = [
+    StripPipeline(),
+    PhonePipeline(),
+    EmailPipeline(),
+    UrlPipeline(),
+    RemovePipeline(),
+    HalfWidthPipeline(),
+    LowerPipeline(),
+    ReplacePipeline(),
+    MaxPipeline(),
+    JiebaPipeline(join_flag=' '),
 ]
-
-pipelines = [pipeline() for pipeline in ENABLE_PIPELINES]
 
 
 def process():
@@ -45,3 +46,5 @@ def process():
         articles = pipeline.process_all(articles)
     
     print(len(articles))
+    
+    writer.write_to_txt(articles, 'articles.pretrain.txt')
