@@ -4,12 +4,11 @@ import os
 import math
 import time
 import json
-from collections import OrderedDict
 import numpy as np
 import tensorflow as tf
 from preprocess.iterator import BiTextIterator
 from model import Seq2SeqModel
-import config
+
 # Data loading parameters
 from utils import prepare_train_batch
 
@@ -26,11 +25,11 @@ tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc_char/summaries.ev
 # Network parameters
 tf.app.flags.DEFINE_string('cell_type', 'lstm', 'RNN cell for encoder and decoder, default: lstm')
 tf.app.flags.DEFINE_string('attention_type', 'bahdanau', 'Attention mechanism: (bahdanau, luong), default: bahdanau')
-tf.app.flags.DEFINE_integer('hidden_units', 1024, 'Number of hidden units in each layer')
+tf.app.flags.DEFINE_integer('hidden_units', 128, 'Number of hidden units in each layer')
 tf.app.flags.DEFINE_integer('depth', 2, 'Number of layers in each encoder and decoder')
-tf.app.flags.DEFINE_integer('embedding_size', 500, 'Embedding dimensions of encoder and decoder inputs')
-tf.app.flags.DEFINE_integer('num_encoder_symbols', config.VOCABS_SIZE_LIMIT, 'Source vocabulary size')
-tf.app.flags.DEFINE_integer('num_decoder_symbols', config.VOCABS_SIZE_LIMIT, 'Target vocabulary size')
+tf.app.flags.DEFINE_integer('embedding_size', 300, 'Embedding dimensions of encoder and decoder inputs')
+tf.app.flags.DEFINE_integer('num_encoder_symbols', 30000, 'Source vocabulary size')
+tf.app.flags.DEFINE_integer('num_decoder_symbols', 30000, 'Target vocabulary size')
 
 tf.app.flags.DEFINE_boolean('use_residual', True, 'Use residual connection between layers')
 tf.app.flags.DEFINE_boolean('attn_input_feeding', False, 'Use input feeding method in attentional decoder')
@@ -122,7 +121,6 @@ def train():
         
         # Training loop
         print('Training..')
-        
         
         for epoch_idx in range(FLAGS.max_epochs):
             if model.global_epoch_step.eval() >= FLAGS.max_epochs:

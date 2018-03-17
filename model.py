@@ -54,7 +54,7 @@ class Seq2SeqModel(object):
         self.global_step = tf.Variable(0, trainable=False, name='global_step')
         self.global_epoch_step = tf.Variable(0, trainable=False, name='global_epoch_step')
         self.global_epoch_step_op = \
-            tf.assign(self.global_epoch_step, self.global_epoch_step + 1)
+            tf.assign(self.global_epoch_step, tf.add(self.global_epoch_step, 1))
         
         self.dtype = tf.float16 if config['use_fp16'] else tf.float32
         self.keep_prob_placeholder = tf.placeholder(self.dtype, shape=[], name='keep_prob')
