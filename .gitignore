@@ -10,6 +10,7 @@ dataset/
 model/
 # C extensions
 *.so
+word2vec/word2vec.model*
 .idea/
 # Distribution / packaging
 .Python
