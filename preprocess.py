@@ -5,7 +5,7 @@ from os.path import exists, join
 from os import makedirs
 from preprocess.pipeline import *
 
-output_dir = join('dataset', 'nlpcc_char')
+output_dir = join('dataset', 'nlpcc_without_date')
 vocab_size_limit = 30000
 
 # pipelines enabled
@@ -18,12 +18,13 @@ pipelines = [
     PhonePipeline(),
     EmailPipeline(),
     UrlPipeline(),
+    DatePipeline(),
+    TimePipeline(),
     RemovePipeline(),
     HalfWidthPipeline(),
     LowerPipeline(),
     ReplacePipeline(),
-    MaxPipeline(),
-    CharPipeline(),
+    JiebaPipeline(),
 ]
 
 writer = Writer(folder=output_dir)

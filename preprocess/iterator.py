@@ -100,11 +100,11 @@ class BiTextIterator(object):
     def __init__(self, source, target,
                  source_dict, target_dict,
                  batch_size=128,
-                 max_length=100,
+                 max_length=None,
                  n_words_source=-1,
                  n_words_target=-1,
                  skip_empty=False,
-                 sort_by_length=True,
+                 sort_by_length=False,
                  encoding='utf-8',
                  split_sign='\t'):
         
@@ -139,7 +139,6 @@ class BiTextIterator(object):
         self.target_buffer = []
         
         self.end_of_data = False
-        self.reset()
     
     def reset(self):
         """
@@ -148,6 +147,11 @@ class BiTextIterator(object):
         """
         self.source.seek(0)
         self.target.seek(0)
+        
+        self.source_buffer = []
+        self.target_buffer = []
+        
+        self.end_of_data = False
         
         assert len(self.source_buffer) == len(self.target_buffer), 'Buffer size mismatch!'
         

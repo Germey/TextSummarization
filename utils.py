@@ -26,6 +26,7 @@ def load_inverse_dict(dict_path):
             idict[idx] = words
     return idict
 
+
 def seq2words(seq, inverse_target_dictionary):
     words = []
     for w in seq:
@@ -36,6 +37,7 @@ def seq2words(seq, inverse_target_dictionary):
         else:
             words.append(UNK)
     return ' '.join(words)
+
 
 # batch preparation of a given sequence
 def prepare_batch(seqs_x, maxlen=None):
@@ -68,24 +70,28 @@ def prepare_batch(seqs_x, maxlen=None):
 
 
 # batch preparation of a given sequence pair for training
-def prepare_train_batch(seqs_x, seqs_y, maxlen=None):
+def prepare_pair_batch(seqs_x, seqs_y, x_max_length=None, y_max_length=None):
     # seqs_x, seqs_y: a list of sentences
     lengths_x = [len(s) for s in seqs_x]
     lengths_y = [len(s) for s in seqs_y]
     
-    if maxlen is not None:
+    if x_max_length is not None:
         new_seqs_x = []
-        new_seqs_y = []
         new_lengths_x = []
-        new_lengths_y = []
-        for l_x, s_x, l_y, s_y in zip(lengths_x, seqs_x, lengths_y, seqs_y):
-            if l_x <= maxlen and l_y <= maxlen:
+        for l_x, s_x in zip(lengths_x, seqs_x):
+            if l_x <= x_max_length:
                 new_seqs_x.append(s_x)
                 new_lengths_x.append(l_x)
-                new_seqs_y.append(s_y)
-                new_lengths_y.append(l_y)
         lengths_x = new_lengths_x
         seqs_x = new_seqs_x
+    
+    if y_max_length is not None:
+        new_seqs_y = []
+        new_lengths_y = []
+        for l_y, s_y in zip(lengths_y, seqs_y):
+            if l_y <= y_max_length:
+                new_seqs_y.append(s_y)
+                new_lengths_y.append(l_y)
         lengths_y = new_lengths_y
         seqs_y = new_seqs_y
         

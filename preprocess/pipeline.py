@@ -262,3 +262,33 @@ class UpperPipeline(Pipeline):
         :return:
         """
         return text.upper()
+
+
+class DatePipeline(Pipeline):
+    def __init__(self, patterns=config.DATE_PATTERNS):
+        self.patterns = patterns
+    
+    def process_text(self, text):
+        """
+        replace content from text
+        :param text: text before replacement
+        :return: text after replacement
+        """
+        for pattern in self.patterns:
+            text = re.sub(pattern, config.DATE_PLACEHOLDER, text, flags=re.S)
+        return text
+
+
+class TimePipeline(Pipeline):
+    def __init__(self, patterns=config.TIME_PATTERNS):
+        self.patterns = patterns
+    
+    def process_text(self, text):
+        """
+        replace content from text
+        :param text: text before replacement
+        :return: text after replacement
+        """
+        for pattern in self.patterns:
+            text = re.sub(pattern, config.TIME_PLACEHOLDER, text, flags=re.S)
+        return text
