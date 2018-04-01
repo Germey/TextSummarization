@@ -140,21 +140,17 @@ def train():
             with tqdm(total=train_set.length()) as pbar:
                 
                 for source_seq, target_seq in train_set.next():
+                    print('Len', len(source_seq), len(target_seq))
+                    
                     # Get a batch from training parallel data
                     source, source_len, target, target_len = prepare_pair_batch(source_seq, target_seq,
                                                                                 FLAGS.source_max_length,
                                                                                 FLAGS.target_max_length)
-                    # print('Get Data', source.shape, target.shape, source_len, target_len)
+                    # print('Get Data', source.shape, target.shape, source_len.shape, target_len.shape)
                     # print('Get Data', source.shape, target.shape)
-                    print('Data', list(source[0]), list(target[0]), source_len[0], target_len[0])
-                    print(len(source_seq))
-                    print('Step:', model.global_step.eval())
+                    # print('Data', , source_len[0], target_len[0])
                     
                     processed_number += len(source_seq)
-                    
-                    if source is None or target is None:
-                        print('No samples under max_seq_length ', FLAGS.max_seq_length)
-                        continue
                     
                     # Execute a single training step
                     step_loss, summary = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len,

@@ -3,8 +3,9 @@ from tqdm import tqdm
 
 from preprocess.iterator import BiTextIterator, TextIterator
 from train import FLAGS
+from utils import prepare_pair_batch
 
-batch_size = 128
+batch_size = 10
 
 
 def main():
@@ -13,7 +14,7 @@ def main():
                                source_dict=FLAGS.source_vocabulary,
                                target_dict=FLAGS.target_vocabulary,
                                batch_size=batch_size,
-                               max_length=FLAGS.max_seq_length,
+                               max_length=None,
                                n_words_source=FLAGS.num_encoder_symbols,
                                n_words_target=FLAGS.num_decoder_symbols,
                                sort_by_length=FLAGS.sort_by_length,
@@ -21,15 +22,20 @@ def main():
                                )
     with tqdm(total=train_set.length()) as pbar:
         train_set.reset()
-        processed_length = batch_size
-        for source, target in train_set.next():
-            processed_length += len(source)
-            print('Length', len(source), len(target), processed_length)
+        processed_length = 0
+        for source_seq, target_seq in train_set.next():
+            processed_length += len(source_seq)
+            print('Length', len(source_seq), len(target_seq), processed_length)
             time.sleep(1)
-            pbar.update(len(source))
+            pbar.update(len(source_seq))
             
-            print('Source 0', list(source[0]), len(source[0]))
-            print('Source 0', list(target[0]), len(target[0]))
+            source, source_len, target, target_len = prepare_pair_batch(source_seq, target_seq,
+                                                                        FLAGS.source_max_length,
+                                                                        FLAGS.target_max_length)
+            print('Get Data', source.shape, target.shape, source_len.shape, target_len.shape)
+            
+            # print('Source 0', list(source[0]), len(source[0]))
+            # print('Source 0', list(target[0]), len(target[0]))
     
     train_set.reset()
     
