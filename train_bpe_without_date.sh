@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+python3 train.py --model_dir model/bpe_without_date --source_vocabulary dataset/nlpcc_bpe_without_date/vocab.json --target_vocabulary dataset/nlpcc_bpe_without_date/vocab.json --source_train_data dataset/nlpcc_bpe_without_date/articles.train.txt --target_train_data dataset/nlpcc_bpe_without_date/summaries.train.txt --source_valid_data dataset/nlpcc_bpe_without_date/articles.eval.txt --target_valid_data dataset/nlpcc_bpe_without_date/summaries.eval.txt --num_encoder_symbols 21548 --num_decoder_symbols 21548 | tee logs/bpe_without_date.log
