@@ -10,6 +10,7 @@ from preprocess.iterator import BiTextIterator
 from model import Seq2SeqModel
 from tqdm import tqdm
 from utils import prepare_pair_batch
+import os
 
 # Data loading parameters
 
@@ -57,6 +58,7 @@ tf.app.flags.DEFINE_boolean('sort_by_length', False, 'Sort pre-fetched minibatch
 tf.app.flags.DEFINE_boolean('use_fp16', False, 'Use half precision float16 instead of float32 as dtype')
 
 # Runtime parameters
+tf.app.flags.DEFINE_string('gpu', '0', 'GPU Number')
 tf.app.flags.DEFINE_boolean('allow_soft_placement', True, 'Allow device soft placement')
 tf.app.flags.DEFINE_boolean('log_device_placement', False, 'Log placement of ops on devices')
 
@@ -82,6 +84,8 @@ def create_model(session, FLAGS):
 
 
 def train():
+    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
+    
     # Load parallel data to train
     print('Loading training data..')
     train_set = BiTextIterator(source=FLAGS.source_train_data,
