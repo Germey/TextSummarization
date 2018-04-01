@@ -10,6 +10,7 @@ from preprocess.iterator import BiTextIterator
 from model import Seq2SeqModel
 from tqdm import tqdm
 from utils import prepare_pair_batch
+
 # Data loading parameters
 
 tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc_bpe/vocab.json', 'Path to source vocabulary')
@@ -140,7 +141,6 @@ def train():
             with tqdm(total=train_set.length()) as pbar:
                 
                 for source_seq, target_seq in train_set.next():
-                    print('Len', len(source_seq), len(target_seq))
                     
                     # Get a batch from training parallel data
                     source, source_len, target, target_len = prepare_pair_batch(source_seq, target_seq,
@@ -173,7 +173,7 @@ def train():
                               'Perplexity {0:.2f}:'.format(avg_perplexity), 'Loss:', loss, 'Step-time:', step_time,
                               '{0:.2f} sents/s'.format(sents_per_sec), '{0:.2f} words/s'.format(words_per_sec))
                         
-                        print('Processed Number', processed_number)
+                        # print('Processed Number', processed_number)
                         
                         pbar.update(processed_number)
                         
@@ -208,7 +208,7 @@ def train():
                             
                             valid_loss += step_loss * batch_size
                             valid_sents_seen += batch_size
-                            print('  {} samples seen'.format(valid_sents_seen))
+                            print('{} samples seen'.format(valid_sents_seen))
                         
                         valid_loss = valid_loss / valid_sents_seen
                         print('Valid perplexity: {0:.2f}'.format(math.exp(valid_loss)), 'Loss:', valid_loss)
