@@ -8,6 +8,8 @@ source/
 .DS_Store
 model/
 # C extensions
+/dataset/
+!/dataset/summerization_samples/
 *.so
 word2vec/word2vec.model*
 .idea/
