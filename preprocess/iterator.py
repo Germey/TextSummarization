@@ -210,6 +210,10 @@ class BiTextIterator(object):
                 source.append(ss)
                 target.append(tt)
             
-            if len(source) >= self.batch_size or len(target) >= self.batch_size or self.end_of_data:
+            if self.end_of_data and len(source) and len(target):
+                yield source, target
+                source, target = [], []
+            
+            if len(source) >= self.batch_size and len(target) >= self.batch_size:
                 yield source, target
                 source, target = [], []

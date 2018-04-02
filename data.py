@@ -5,18 +5,18 @@ from preprocess.iterator import BiTextIterator, TextIterator
 from train import FLAGS
 from utils import prepare_pair_batch
 
-batch_size = 10
+batch_size = 6
 
 
 def main():
-    train_set = BiTextIterator(source=FLAGS.source_valid_data,
-                               target=FLAGS.target_valid_data,
-                               source_dict=FLAGS.source_vocabulary,
-                               target_dict=FLAGS.target_vocabulary,
+    train_set = BiTextIterator(source='dataset/summerization_sample/articles.eval.sample.txt',
+                               target='dataset/summerization_sample/summaries.eval.sample.txt',
+                               source_dict='dataset/summerization_sample/vocab.json',
+                               target_dict='dataset/summerization_sample/vocab.json',
                                batch_size=batch_size,
                                max_length=None,
-                               n_words_source=FLAGS.num_encoder_symbols,
-                               n_words_target=FLAGS.num_decoder_symbols,
+                               n_words_source=21548,
+                               n_words_target=21548,
                                sort_by_length=FLAGS.sort_by_length,
                                split_sign=FLAGS.split_sign,
                                )

@@ -151,7 +151,7 @@ def train():
                                                                                 FLAGS.source_max_length,
                                                                                 FLAGS.target_max_length)
                     # print('Get Data', source.shape, target.shape, source_len.shape, target_len.shape)
-                    # print('Get Data', source.shape, target.shape)
+                    print('Get Data', source.shape, target.shape)
                     # print('Data', , source_len[0], target_len[0])
                     
                     processed_number += len(source_seq)
@@ -203,7 +203,9 @@ def train():
                             source, source_len, target, target_len = prepare_pair_batch(source_seq, target_seq,
                                                                                         FLAGS.source_max_length,
                                                                                         FLAGS.target_max_length)
-                            
+
+                            print('Get Valid Data', source.shape, target.shape)
+
                             # Compute validation loss: average per word cross entropy loss
                             step_loss, summary = model.eval(sess, encoder_inputs=source,
                                                             encoder_inputs_length=source_len,
