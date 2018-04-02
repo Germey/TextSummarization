@@ -4,21 +4,21 @@
 __pycache__/
 *.py[cod]
 *$py.class
-source/
+/source/
 .DS_Store
-model/
+/model/
 # C extensions
 /dataset/
 !/dataset/summerization_samples/
 *.so
-word2vec/word2vec.model*
-.idea/
+/word2vec/word2vec.model*
+/.idea/
+/word2vec/word2vec.model
+/word2vec/word2vec.vector
 # Distribution / packaging
 .Python
 build/
 develop-eggs/
-word2vec/word2vec.model
-word2vec/word2vec.vector
 dist/
 downloads/
 eggs/
