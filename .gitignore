@@ -6,8 +6,6 @@ __pycache__/
 *$py.class
 source/
 .DS_Store
-dataset/
-!dataset/summerization_samples
 model/
 # C extensions
 *.so
