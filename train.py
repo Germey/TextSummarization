@@ -165,7 +165,7 @@ def train():
                     sents_seen += float(source.shape[0])  # batch_size
                     
                     if model.global_step.eval() % FLAGS.display_freq == 0:
-                        avg_perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
+                        avg_perplexity = math.exp(float(loss)) if loss < 300 else float('inf')
                         
                         time_elapsed = time.time() - start_time
                         step_time = time_elapsed / FLAGS.display_freq
