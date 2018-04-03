@@ -52,7 +52,7 @@ tf.app.flags.DEFINE_integer('display_freq', 5, 'Display training status every th
 tf.app.flags.DEFINE_integer('save_freq', 50, 'Save model checkpoint every this iteration')
 tf.app.flags.DEFINE_integer('valid_freq', 5, 'Evaluate model every this iteration: valid_data needed')
 tf.app.flags.DEFINE_string('optimizer', 'adam', 'Optimizer for training: (adadelta, adam, rmsprop)')
-tf.app.flags.DEFINE_string('model_dir', 'model/', 'Path to save model checkpoints')
+tf.app.flags.DEFINE_string('model_dir', 'model/sample', 'Path to save model checkpoints')
 tf.app.flags.DEFINE_string('model_name', 'summary.ckpt', 'File name used for model checkpoints')
 tf.app.flags.DEFINE_boolean('shuffle_each_epoch', False, 'Shuffle training dataset for each epoch')
 tf.app.flags.DEFINE_boolean('sort_by_length', False, 'Sort pre-fetched minibatches by their target sequence lengths')
@@ -121,12 +121,13 @@ def train():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
                                           log_device_placement=FLAGS.log_device_placement,
                                           gpu_options=tf.GPUOptions(allow_growth=True))) as sess:
+    
+        # Create a new model or reload existing checkpoint
+        model = create_model(sess, FLAGS)
         
         # Create a log writer object
         log_writer = tf.summary.FileWriter(FLAGS.model_dir, graph=sess.graph)
         
-        # Create a new model or reload existing checkpoint
-        model = create_model(sess, FLAGS)
         
         step_time, loss = 0.0, 0.0
         words_seen, sents_seen, processed_number = 0, 0, 0
