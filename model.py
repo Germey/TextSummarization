@@ -225,6 +225,9 @@ class Seq2SeqModel(object):
                                                   average_across_timesteps=True,
                                                   average_across_batch=True, )
                 
+                # Training summary for the current batch_loss
+                tf.summary.scalar('loss', self.loss)
+                
                 # Contruct graphs for minimizing loss
                 self.init_optimizer()
             
@@ -442,13 +445,8 @@ class Seq2SeqModel(object):
           average perplexity, and the outputs.
         """
         # Check if the model is 'training' mode
-        
-        
         if self.mode.lower() != 'train':
             raise ValueError("train step can only be operated in train mode")
-
-        # Eval summary for the current batch_loss
-        tf.summary.scalar('train_loss', self.loss)
         
         input_feed = self.check_feeds(encoder_inputs, encoder_inputs_length,
                                       decoder_inputs, decoder_inputs_length, False)
@@ -457,7 +455,7 @@ class Seq2SeqModel(object):
         
         output_feed = [self.updates,  # Update Op that does optimization
                        self.loss,  # Loss for current batch
-                       self.summary_op]  # Training summary
+                       self.summary_op]  # Training loss summary
         
         outputs = sess.run(output_feed, input_feed)
         
@@ -483,16 +481,13 @@ class Seq2SeqModel(object):
           average perplexity, and the outputs.
         """
         
-        # Eval summary for the current batch_loss
-        tf.summary.scalar('eval_loss', self.loss)
-        
         input_feed = self.check_feeds(encoder_inputs, encoder_inputs_length,
                                       decoder_inputs, decoder_inputs_length, False)
         # Input feeds for dropout
         input_feed[self.keep_prob_placeholder.name] = 1.0
         
         output_feed = [self.loss,  # Loss for current batch
-                       self.summary_op]  # Training summary
+                       self.summary_op]  # Valid summary
         outputs = sess.run(output_feed, input_feed)
         return outputs[0], outputs[1]  # loss
     

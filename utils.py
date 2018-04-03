@@ -1,9 +1,13 @@
 import json
-
+import tensorflow as tf
 from config import UNK
 from preprocess.iterator import end_token
 import numpy as np
 import pickle
+
+
+def get_summary(name, value):
+    return tf.Summary(value=[tf.Summary.Value(tag=name, simple_value=value)])
 
 
 def load_dict(filename):

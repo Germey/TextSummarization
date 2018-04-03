@@ -6,10 +6,12 @@ import time
 import json
 import numpy as np
 import tensorflow as tf
+from os.path import join
+
 from preprocess.iterator import BiTextIterator
 from model import Seq2SeqModel
 from tqdm import tqdm
-from utils import prepare_pair_batch
+from utils import prepare_pair_batch, get_summary
 import os
 
 # Data loading parameters
@@ -121,13 +123,13 @@ def train():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=FLAGS.allow_soft_placement,
                                           log_device_placement=FLAGS.log_device_placement,
                                           gpu_options=tf.GPUOptions(allow_growth=True))) as sess:
-    
+        
         # Create a new model or reload existing checkpoint
         model = create_model(sess, FLAGS)
         
         # Create a log writer object
-        log_writer = tf.summary.FileWriter(FLAGS.model_dir, graph=sess.graph)
-        
+        train_summary_writer = tf.summary.FileWriter(join(FLAGS.model_dir, 'train'), graph=sess.graph)
+        valid_summary_writer = tf.summary.FileWriter(join(FLAGS.model_dir, 'valid'), graph=sess.graph)
         
         step_time, loss = 0.0, 0.0
         words_seen, sents_seen, processed_number = 0, 0, 0
@@ -159,8 +161,8 @@ def train():
                     processed_number += len(source_seq)
                     
                     # Execute a single training step
-                    step_loss, summary = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len,
-                                                     decoder_inputs=target, decoder_inputs_length=target_len)
+                    step_loss, _ = model.train(sess, encoder_inputs=source, encoder_inputs_length=source_len,
+                                               decoder_inputs=target, decoder_inputs_length=target_len)
                     
                     loss += float(step_loss) / FLAGS.display_freq
                     words_seen += float(np.sum(source_len + target_len))
@@ -179,8 +181,13 @@ def train():
                               'Perplexity {0:.2f}:'.format(avg_perplexity), 'Loss:', loss, 'Step-time:', step_time,
                               '{0:.2f} sents/s'.format(sents_per_sec), '{0:.2f} words/s'.format(words_per_sec))
                         
-                        # print('Processed Number', processed_number)
+                        # Record training summary for the current batch
+                        summary = get_summary('train_loss', loss)
+                        train_summary_writer.add_summary(summary, model.global_step.eval())
+                        print('Record Training Summary', model.global_step.eval())
+                        train_summary_writer.flush()
                         
+                        # print('Processed Number', processed_number)
                         pbar.update(processed_number)
                         
                         loss = 0
@@ -188,11 +195,6 @@ def train():
                         sents_seen = 0
                         processed_number = 0
                         start_time = time.time()
-                        
-                        # Record training summary for the current batch
-                        log_writer.add_summary(summary, model.global_step.eval())
-                        print('Record Training Summary', model.global_step.eval())
-                        log_writer.flush()
                     
                     # Execute a validation step
                     if valid_set and model.global_step.eval() % FLAGS.valid_freq == 0:
@@ -211,9 +213,9 @@ def train():
                             print('Get Valid Data', source.shape, target.shape)
                             
                             # Compute validation loss: average per word cross entropy loss
-                            step_loss, summary = model.eval(sess, encoder_inputs=source,
-                                                            encoder_inputs_length=source_len,
-                                                            decoder_inputs=target, decoder_inputs_length=target_len)
+                            step_loss, _ = model.eval(sess, encoder_inputs=source,
+                                                      encoder_inputs_length=source_len,
+                                                      decoder_inputs=target, decoder_inputs_length=target_len)
                             batch_size = source.shape[0]
                             
                             valid_loss += step_loss * batch_size
@@ -224,9 +226,10 @@ def train():
                         print('Valid perplexity: {0:.2f}'.format(math.exp(valid_loss)), 'Loss:', valid_loss)
                         
                         # Record training summary for the current batch
-                        log_writer.add_summary(summary, model.global_step.eval())
-                        print('Record Training Summary', model.global_step.eval())
-                        log_writer.flush()
+                        summary = get_summary('valid_loss', valid_loss)
+                        valid_summary_writer.add_summary(summary, model.global_step.eval())
+                        print('Record Valid Summary', model.global_step.eval())
+                        valid_summary_writer.flush()
                     
                     # Save the model checkpoint
                     if model.global_step.eval() % FLAGS.save_freq == 0:
