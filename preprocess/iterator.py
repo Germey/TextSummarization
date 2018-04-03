@@ -96,7 +96,6 @@ class TextIterator(object):
 
 class BiTextIterator(object):
     """Simple Bi text iterator."""
-    
     def __init__(self, source, target,
                  source_dict, target_dict,
                  batch_size=128,

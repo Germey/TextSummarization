@@ -14,14 +14,15 @@ import os
 
 # Data loading parameters
 
-tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/nlpcc_bpe/vocab.json', 'Path to source vocabulary')
-tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/nlpcc_bpe/vocab.json', 'Path to target vocabulary')
-tf.app.flags.DEFINE_string('source_train_data', 'dataset/nlpcc_bpe/articles.train.txt', 'Path to source training data')
-tf.app.flags.DEFINE_string('target_train_data', 'dataset/nlpcc_bpe/summaries.train.txt',
+tf.app.flags.DEFINE_string('source_vocabulary', 'dataset/summerization_sample/vocab.json', 'Path to source vocabulary')
+tf.app.flags.DEFINE_string('target_vocabulary', 'dataset/summerization_sample/vocab.json', 'Path to target vocabulary')
+tf.app.flags.DEFINE_string('source_train_data', 'dataset/summerization_sample/articles.train.sample.txt',
+                           'Path to source training data')
+tf.app.flags.DEFINE_string('target_train_data', 'dataset/summerization_sample/summaries.train.sample.txt',
                            'Path to target training data')
-tf.app.flags.DEFINE_string('source_valid_data', 'dataset/nlpcc_bpe/articles.eval.txt',
+tf.app.flags.DEFINE_string('source_valid_data', 'dataset/summerization_sample/articles.eval.sample.txt',
                            'Path to source validation data')
-tf.app.flags.DEFINE_string('target_valid_data', 'dataset/nlpcc_bpe/summaries.eval.txt',
+tf.app.flags.DEFINE_string('target_valid_data', 'dataset/summerization_sample/summaries.eval.sample.txt',
                            'Path to target validation data')
 
 # Network parameters
@@ -30,8 +31,8 @@ tf.app.flags.DEFINE_string('attention_type', 'bahdanau', 'Attention mechanism: (
 tf.app.flags.DEFINE_integer('hidden_units', 128, 'Number of hidden units in each layer')
 tf.app.flags.DEFINE_integer('depth', 2, 'Number of layers in each encoder and decoder')
 tf.app.flags.DEFINE_integer('embedding_size', 300, 'Embedding dimensions of encoder and decoder inputs')
-tf.app.flags.DEFINE_integer('num_encoder_symbols', 21549, 'Source vocabulary size')
-tf.app.flags.DEFINE_integer('num_decoder_symbols', 21549, 'Target vocabulary size')
+tf.app.flags.DEFINE_integer('num_encoder_symbols', 21548, 'Source vocabulary size')
+tf.app.flags.DEFINE_integer('num_decoder_symbols', 21548, 'Target vocabulary size')
 
 tf.app.flags.DEFINE_boolean('use_residual', True, 'Use residual connection between layers')
 tf.app.flags.DEFINE_boolean('attn_input_feeding', False, 'Use input feeding method in attentional decoder')
@@ -42,14 +43,14 @@ tf.app.flags.DEFINE_string('split_sign', ' ', 'Separator of dataset')
 # Training parameters
 tf.app.flags.DEFINE_float('learning_rate', 0.0002, 'Learning rate')
 tf.app.flags.DEFINE_float('max_gradient_norm', 1.0, 'Clip gradients to this norm')
-tf.app.flags.DEFINE_integer('batch_size', 64, 'Batch size')
+tf.app.flags.DEFINE_integer('batch_size', 10, 'Batch size')
 tf.app.flags.DEFINE_integer('max_epochs', 10000, 'Maximum # of training epochs')
 tf.app.flags.DEFINE_integer('max_load_batches', 20, 'Maximum # of batches to load at one time')
 tf.app.flags.DEFINE_integer('source_max_length', 1500, 'Maximum sequence length')
 tf.app.flags.DEFINE_integer('target_max_length', 60, 'Maximum sequence length')
 tf.app.flags.DEFINE_integer('display_freq', 5, 'Display training status every this iteration')
-tf.app.flags.DEFINE_integer('save_freq', 100, 'Save model checkpoint every this iteration')
-tf.app.flags.DEFINE_integer('valid_freq', 100, 'Evaluate model every this iteration: valid_data needed')
+tf.app.flags.DEFINE_integer('save_freq', 50, 'Save model checkpoint every this iteration')
+tf.app.flags.DEFINE_integer('valid_freq', 5, 'Evaluate model every this iteration: valid_data needed')
 tf.app.flags.DEFINE_string('optimizer', 'adam', 'Optimizer for training: (adadelta, adam, rmsprop)')
 tf.app.flags.DEFINE_string('model_dir', 'model/', 'Path to save model checkpoints')
 tf.app.flags.DEFINE_string('model_name', 'summary.ckpt', 'File name used for model checkpoints')
@@ -189,6 +190,8 @@ def train():
                         
                         # Record training summary for the current batch
                         log_writer.add_summary(summary, model.global_step.eval())
+                        print('Record Training Summary', model.global_step.eval())
+                        log_writer.flush()
                     
                     # Execute a validation step
                     if valid_set and model.global_step.eval() % FLAGS.valid_freq == 0:
@@ -203,9 +206,9 @@ def train():
                             source, source_len, target, target_len = prepare_pair_batch(source_seq, target_seq,
                                                                                         FLAGS.source_max_length,
                                                                                         FLAGS.target_max_length)
-
+                            
                             print('Get Valid Data', source.shape, target.shape)
-
+                            
                             # Compute validation loss: average per word cross entropy loss
                             step_loss, summary = model.eval(sess, encoder_inputs=source,
                                                             encoder_inputs_length=source_len,
@@ -218,6 +221,11 @@ def train():
                         
                         valid_loss = valid_loss / valid_sents_seen
                         print('Valid perplexity: {0:.2f}'.format(math.exp(valid_loss)), 'Loss:', valid_loss)
+                        
+                        # Record training summary for the current batch
+                        log_writer.add_summary(summary, model.global_step.eval())
+                        print('Record Training Summary', model.global_step.eval())
+                        log_writer.flush()
                     
                     # Save the model checkpoint
                     if model.global_step.eval() % FLAGS.save_freq == 0:
