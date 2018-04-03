@@ -224,8 +224,6 @@ class Seq2SeqModel(object):
                                                   weights=masks,
                                                   average_across_timesteps=True,
                                                   average_across_batch=True, )
-                # Training summary for the current batch_loss
-                tf.summary.scalar('loss', self.loss)
                 
                 # Contruct graphs for minimizing loss
                 self.init_optimizer()
@@ -366,7 +364,7 @@ class Seq2SeqModel(object):
             attention_mechanism=self.attention_mechanism,
             attention_layer_size=self.hidden_units,
             cell_input_fn=attn_decoder_input_fn,
-            initial_cell_state=encoder_last_state[-1],
+            initial_cell_state=decoder_initial_state[-1],
             alignment_history=False,
             name='Attention_Wrapper')
         
@@ -444,8 +442,13 @@ class Seq2SeqModel(object):
           average perplexity, and the outputs.
         """
         # Check if the model is 'training' mode
+        
+        
         if self.mode.lower() != 'train':
             raise ValueError("train step can only be operated in train mode")
+
+        # Eval summary for the current batch_loss
+        tf.summary.scalar('train_loss', self.loss)
         
         input_feed = self.check_feeds(encoder_inputs, encoder_inputs_length,
                                       decoder_inputs, decoder_inputs_length, False)
@@ -479,6 +482,9 @@ class Seq2SeqModel(object):
           A triple consisting of gradient norm (or None if we did not do backward),
           average perplexity, and the outputs.
         """
+        
+        # Eval summary for the current batch_loss
+        tf.summary.scalar('eval_loss', self.loss)
         
         input_feed = self.check_feeds(encoder_inputs, encoder_inputs_length,
                                       decoder_inputs, decoder_inputs_length, False)
