@@ -51,6 +51,7 @@ def decode():
     print(config)
     # Load source data to decode
     test_set = TextIterator(source=config['decode_input'],
+                            split_sign=config['split_sign'],
                             batch_size=config['decode_batch_size'],
                             source_dict=config['source_vocabulary'],
                             n_words_source=config['num_encoder_symbols'])
