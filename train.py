@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_string('target_valid_data', 'dataset/summerization_sample/su
 tf.app.flags.DEFINE_string('cell_type', 'lstm', 'RNN cell for encoder and decoder, default: lstm')
 tf.app.flags.DEFINE_string('attention_type', 'bahdanau', 'Attention mechanism: (bahdanau, luong), default: bahdanau')
 tf.app.flags.DEFINE_integer('hidden_units', 128, 'Number of hidden units in each layer')
-tf.app.flags.DEFINE_integer('depth', 2, 'Number of layers in each encoder and decoder')
+tf.app.flags.DEFINE_integer('depth', 3, 'Number of layers in each encoder and decoder')
 tf.app.flags.DEFINE_integer('embedding_size', 300, 'Embedding dimensions of encoder and decoder inputs')
 tf.app.flags.DEFINE_integer('num_encoder_symbols', 21548, 'Source vocabulary size')
 tf.app.flags.DEFINE_integer('num_decoder_symbols', 21548, 'Target vocabulary size')
