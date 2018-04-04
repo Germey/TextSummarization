@@ -227,7 +227,7 @@ class Seq2SeqModel(object):
                 # Training summary for the current batch_loss
                 tf.summary.scalar('loss', self.loss)
                 
-                # Contruct graphs for minimizing loss
+                # Construct graphs for minimizing loss
                 self.init_optimizer()
             
             elif self.mode == 'decode':
@@ -368,7 +368,7 @@ class Seq2SeqModel(object):
             cell_input_fn=attn_decoder_input_fn,
             initial_cell_state=decoder_initial_state[-1],
             alignment_history=False,
-            name='Attention_Wrapper')
+            name='attention_wrapper')
         
         # To be compatible with AttentionWrapper, the encoder last state
         # of the top layer should be converted into the AttentionWrapperState form
