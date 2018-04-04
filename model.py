@@ -53,8 +53,7 @@ class Seq2SeqModel(object):
         self.max_gradient_norm = config['max_gradient_norm']
         self.global_step = tf.Variable(0, trainable=False, name='global_step')
         self.global_epoch_step = tf.Variable(0, trainable=False, name='global_epoch_step')
-        self.global_epoch_step_op = \
-            tf.assign(self.global_epoch_step, tf.add(self.global_epoch_step, 1))
+        self.global_epoch_step_op = tf.assign(self.global_epoch_step, tf.add(self.global_epoch_step, 1))
         
         self.dtype = tf.float16 if config['use_fp16'] else tf.float32
         self.keep_prob_placeholder = tf.placeholder(self.dtype, shape=[], name='keep_prob')
@@ -348,7 +347,7 @@ class Seq2SeqModel(object):
         
         # Building decoder_cell
         self.decoder_cell_list = [
-            self.build_single_cell() for i in range(self.depth)]
+            self.build_single_cell() for _ in range(self.depth)]
         decoder_initial_state = encoder_last_state
         
         def attn_decoder_input_fn(inputs, attention):
