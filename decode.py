@@ -1,5 +1,6 @@
 # !/usr/bin/env python
 # coding: utf-8
+import os
 from preprocess.iterator import TextIterator
 from utils import prepare_batch, load_inverse_dict, seq2words
 import json
@@ -8,16 +9,18 @@ from model import Seq2SeqModel
 
 # Decoding parameters
 tf.app.flags.DEFINE_integer('beam_width', 1, 'Beam width used in beam search')
-tf.app.flags.DEFINE_integer('decode_batch_size', 1, 'Batch size used for decoding')
-tf.app.flags.DEFINE_integer('max_decode_step', 50, 'Maximum time step limit to decode')
+tf.app.flags.DEFINE_integer('decode_batch_size', 64, 'Batch size used for decoding')
+tf.app.flags.DEFINE_integer('max_decode_step', 60, 'Maximum time step limit to decode')
 tf.app.flags.DEFINE_boolean('write_n_best', False, 'Write n-best list (n=beam_width)')
-tf.app.flags.DEFINE_string('model_path', 'model/summary.ckpt-1000', 'Path to a specific model checkpoint.')
-tf.app.flags.DEFINE_string('decode_input', 'dataset/nlpcc_char/articles.eval.txt', 'Decoding input path')
-tf.app.flags.DEFINE_string('decode_output', 'dataset/nlpcc_char/articles.decode.txt', 'Decoding output path')
+tf.app.flags.DEFINE_string('model_path', 'model/bpe_without_date/summary.ckpt-30100',
+                           'Path to a specific model checkpoint.')
+tf.app.flags.DEFINE_string('decode_input', 'dataset/nlpcc_bpe_without_date/articles.test.txt', 'Decoding input path')
+tf.app.flags.DEFINE_string('decode_output', 'dataset/nlpcc_bpe_without_date/summaries.test.txt', 'Decoding output path')
 
 # Runtime parameters
 tf.app.flags.DEFINE_boolean('allow_soft_placement', True, 'Allow device soft placement')
 tf.app.flags.DEFINE_boolean('log_device_placement', False, 'Log placement of ops on devices')
+tf.app.flags.DEFINE_string('gpu', '0', 'GPU Number')
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -41,6 +44,8 @@ def load_model(session, config):
 
 
 def decode():
+    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
+    
     # Load model config
     config = load_config(FLAGS)
     print(config)
@@ -68,23 +73,26 @@ def decode():
             else:
                 fout = [open(FLAGS.decode_output, 'w')]
             
+            line_number = 0
+            
             for idx, source_seq in enumerate(test_set.next()):
                 source, source_len = prepare_batch(source_seq)
+                line_number += len(source)
+                
                 print('Source', source[0], 'Source Len', source_len[0])
                 # predicted_ids: GreedyDecoder; [batch_size, max_time_step, 1]
                 # BeamSearchDecoder; [batch_size, max_time_step, beam_width]
                 predicted_ids = model.predict(sess, encoder_inputs=source,
                                               encoder_inputs_length=source_len)
-                print(predicted_ids)
                 # Write decoding results
                 for k, f in reversed(list(enumerate(fout))):
                     for seq in predicted_ids:
-                        f.write(str(seq2words(seq[:, k], target_inverse_dict)) + '\n')
+                        result = str(seq2words(seq[:, k], target_inverse_dict))
+                        f.write(result + '\n')
                         f.flush()
                     if not FLAGS.write_n_best:
                         break
-                print('{}th line decoded'.format(idx * FLAGS.decode_batch_size))
-            
+                print('{}th line decoded'.format(line_number))
             print('Decoding terminated')
         except IOError:
             pass
