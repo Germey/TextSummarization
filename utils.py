@@ -44,17 +44,17 @@ def seq2words(seq, inverse_target_dictionary):
 
 
 # batch preparation of a given sequence
-def prepare_batch(seqs_x, maxlen=None):
+def prepare_batch(seqs_x, x_max_length=None):
     # seqs_x: a list of sentences
     lengths_x = [len(s) for s in seqs_x]
     
-    if maxlen is not None:
+    if x_max_length is not None:
         new_seqs_x = []
         new_lengths_x = []
-        for l_x, s_x in zip(lengths_x, seqs_x):
-            if l_x <= maxlen:
-                new_seqs_x.append(s_x)
-                new_lengths_x.append(l_x)
+        for s_x in seqs_x:
+            s_x = s_x[:x_max_length]
+            new_seqs_x.append(s_x)
+            new_lengths_x.append(len(s_x))
         lengths_x = new_lengths_x
         seqs_x = new_seqs_x
         
