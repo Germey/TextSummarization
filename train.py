@@ -36,9 +36,10 @@ tf.app.flags.DEFINE_integer('embedding_size', 300, 'Embedding dimensions of enco
 tf.app.flags.DEFINE_integer('num_encoder_symbols', 21548, 'Source vocabulary size')
 tf.app.flags.DEFINE_integer('num_decoder_symbols', 21548, 'Target vocabulary size')
 
-tf.app.flags.DEFINE_boolean('use_residual', True, 'Use residual connection between layers')
+tf.app.flags.DEFINE_boolean('use_residual', False, 'Use residual connection between layers')
 tf.app.flags.DEFINE_boolean('attn_input_feeding', False, 'Use input feeding method in attentional decoder')
 tf.app.flags.DEFINE_boolean('use_dropout', True, 'Use dropout in each rnn cell')
+tf.app.flags.DEFINE_boolean('use_bidirectional', True, 'Use bidirectional rnn cell')
 tf.app.flags.DEFINE_float('dropout_rate', 0.3, 'Dropout probability for input/output/state units (0.0: no dropout)')
 tf.app.flags.DEFINE_string('split_sign', ' ', 'Separator of dataset')
 

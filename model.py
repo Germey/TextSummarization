@@ -43,6 +43,7 @@ class Seq2SeqModel(object):
         self.num_decoder_symbols = config['num_decoder_symbols']
         
         self.use_residual = config['use_residual']
+        self.use_bidirectional = config['use_bidirectional']
         self.attn_input_feeding = config['attn_input_feeding']
         self.use_dropout = config['use_dropout']
         
@@ -140,13 +141,60 @@ class Seq2SeqModel(object):
             # Embedded inputs having gone through input projection layer
             self.encoder_inputs_embedded = input_layer(self.encoder_inputs_embedded)
             
-            # Encode input sequences into context vectors:
-            # encoder_outputs: [batch_size, max_time_step, cell_output_size]
-            # encoder_state: [batch_size, cell_output_size]
-            self.encoder_outputs, self.encoder_last_state = tf.nn.dynamic_rnn(
-                cell=self.encoder_cell, inputs=self.encoder_inputs_embedded,
-                sequence_length=self.encoder_inputs_length, dtype=self.dtype,
-                time_major=False)
+            if self.use_bidirectional:
+                # 编码端的第一层是双向RNN，使用bidirectional_dynamic_rnn，输入是句子的embedding表示
+                fw_cell = self.build_single_cell()
+                bw_cell = self.build_single_cell()
+                
+                bi_outputs, bi_last_state = tf.nn.bidirectional_dynamic_rnn(
+                    cell_fw=fw_cell, cell_bw=bw_cell, inputs=self.encoder_inputs_embedded,
+                    sequence_length=self.encoder_inputs_length, dtype=self.dtype, time_major=False)
+                
+                print('Bi outputs', bi_outputs)
+                print('Bi last state', bi_last_state)
+                
+                bi_outputs = tf.concat(bi_outputs, -1)
+                
+                print('Bi outputs concat', bi_outputs)
+                
+                if self.depth > 2:
+                    uni_cell = tf.nn.rnn_cell.MultiRNNCell(
+                        [self.build_single_cell() for _ in range(self.depth - 1)])
+                elif self.depth == 2:
+                    uni_cell = self.build_single_cell()
+                else:
+                    uni_cell = None
+                
+                print('Uni Cell', uni_cell, 'Bi outputs', bi_outputs)
+                
+                if uni_cell is not None:
+                    # 如果uni_cell非空，那么表示至少有一层单向RNN，于是整个编码器的输出为：
+                    # self.encoder_outputs: [batch_size, max_time_step, hidden_size]，输出为最后一层单向RNN的输出
+                    # self.encoder_last_state: layer_num * [batch_size, hidden_size], 编码器每一层的最后一个状态，用于初始化解码器每一层的第一个状态
+                    uni_outputs, uni_states = tf.nn.dynamic_rnn(
+                        cell=uni_cell, inputs=bi_outputs, sequence_length=self.encoder_inputs_length,
+                        dtype=self.dtype, time_major=False
+                    )
+                    self.encoder_outputs = uni_outputs
+                    print('Encoder Outputs After Dynamic RNN', self.encoder_outputs)
+                    
+                    self.encoder_last_state = (bi_last_state[0],) + (
+                        (uni_states,) if self.depth == 2 else uni_states)
+                else:
+                    # 如果uni_cell为空，那么表示编码器只含有一层双向RNN，没有单向RNN层，于是整个编码器的输出为：
+                    # self.encoder_outputs: [batch_size, max_time_step, 2*hidden_size]，输出为双向RNN层的输出，所以需要乘2
+                    # self.encoder_last_state: [batch_size, hidden_size]，编码器第一层的最后一个状态，用于初始化解码器第一层的第一个状态
+                    self.encoder_outputs = bi_outputs
+                    self.encoder_last_state = (bi_last_state[0],)
+            
+            else:
+                # Encode input sequences into context vectors:
+                # encoder_outputs: [batch_size, max_time_step, cell_output_size]
+                # encoder_state: [batch_size, cell_output_size]
+                self.encoder_outputs, self.encoder_last_state = tf.nn.dynamic_rnn(
+                    cell=self.encoder_cell, inputs=self.encoder_inputs_embedded,
+                    sequence_length=self.encoder_inputs_length, dtype=self.dtype,
+                    time_major=False)
     
     def build_decoder(self):
         print("building decoder and attention..")
