@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+cd ..
+python3 train.py --cell_type gru --attn_input_feeding True --use_bidirectional True --model_dir model/train_bpe_bigru_with_attention_input_feeding --source_vocabulary dataset/nlpcc_bpe/vocab.json --target_vocabulary dataset/nlpcc_bpe/vocab.json --source_train_data dataset/nlpcc_bpe/articles.train.txt --target_train_data dataset/nlpcc_bpe/summaries.train.txt --source_valid_data dataset/nlpcc_bpe/articles.eval.txt --target_valid_data dataset/nlpcc_bpe/summaries.eval.txt --num_encoder_symbols 21549 --num_decoder_symbols 21549 --batch_size 64 --source_max_length 1500 --target_max_length 60 --display_freq 5 --save_freq 100 --valid_freq 100
