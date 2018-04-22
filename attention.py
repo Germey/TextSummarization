@@ -1,11 +1,11 @@
 from tensorflow.contrib.seq2seq.python.ops.attention_wrapper import AttentionMechanism, \
-    _zero_state_tensors
+    _zero_state_tensors, _maybe_mask_score
 import collections
 from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.layers import core as layers_core
-from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import array_ops, nn_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import rnn_cell_impl
@@ -21,6 +21,8 @@ __all__ = [
 
 def _compute_encoder_attention(attention_mechanism, cell_output, previous_alignments,
                                attention_layer):
+    print('_compute_attention', 'cell_output', cell_output, 'previous_alignments', previous_alignments)
+    
     """Computes the attention and alignments for a given attention_mechanism."""
     alignments = attention_mechanism(
         cell_output, previous_alignments=previous_alignments)
@@ -36,21 +38,53 @@ def _compute_encoder_attention(attention_mechanism, cell_output, previous_alignm
     # the batched matmul is over memory_time, so the output shape is
     #   [batch_size, 1, memory_size].
     # we then squeeze out the singleton dim.
+    print('context before', expanded_alignments, attention_mechanism.values)
     context = math_ops.matmul(expanded_alignments, attention_mechanism.values)
+    print('context', context)
     context = array_ops.squeeze(context, [1])
+    print('context after squeeze', context)
     
     if attention_layer is not None:
         attention = attention_layer(array_ops.concat([cell_output, context], 1))
     else:
         attention = context
-    
+    print('attention', attention, 'alignments', alignments)
     return attention, alignments
 
 
-def _compute_decoder_attention(cell_output, previous_alignments, attention_layer):
+def _compute_decoder_attention(cell_output, hidden_states, previous_alignments, attention_layer):
     """Computes the attention and alignments for a given attention_mechanism."""
-    alignments = attention_mechanism(
-        cell_output, previous_alignments=previous_alignments)
+    
+    print('cell_output', cell_output, 'hidden_states', hidden_states)
+    
+    hidden_states_stack = tf.stack(hidden_states, axis=1)
+    print('hidden_states_stack', hidden_states_stack)
+    
+    # with variable_scope.variable_scope(None, "bahdanau_attention", [query]):
+    #   processed_query = self.query_layer(query) if self.query_layer else query
+    #   score = _bahdanau_score(processed_query, self._keys, self._normalize)
+    # alignments = self._probability_fn(score, previous_alignments)
+    # return alignments
+    
+    # num_units = keys.shape[2].value or array_ops.shape(keys)[2]
+    # # Reshape from [batch_size, ...] to [batch_size, 1, ...] for broadcasting.
+    # processed_query = array_ops.expand_dims(processed_query, 1)
+    # v = variable_scope.get_variable(
+    #     "attention_v", [num_units], dtype=dtype)
+    # math_ops.reduce_sum(v * math_ops.tanh(keys + processed_query), [2])
+    
+    cell_output_expand = array_ops.expand_dims(cell_output, 1)
+    num_units = cell_output_expand.shape[2].value or array_ops.shape(cell_output_expand)[2]
+    
+    print('cell_output', cell_output_expand)
+    v = tf.get_variable("attention_v_decoder", [num_units], dtype=tf.float32)
+    print('v', v)
+    score = math_ops.reduce_sum(v * math_ops.tanh(cell_output_expand + hidden_states_stack), [2])
+    print('score', score)
+    
+    alignments = nn_ops.softmax(score)
+    
+    print('alignments', alignments)
     
     # Reshape from [batch_size, memory_time] to [batch_size, 1, memory_time]
     expanded_alignments = array_ops.expand_dims(alignments, 1)
@@ -63,20 +97,21 @@ def _compute_decoder_attention(cell_output, previous_alignments, attention_layer
     # the batched matmul is over memory_time, so the output shape is
     #   [batch_size, 1, memory_size].
     # we then squeeze out the singleton dim.
-    context = math_ops.matmul(expanded_alignments, attention_mechanism.values)
+    context = math_ops.matmul(expanded_alignments, hidden_states_stack)
     context = array_ops.squeeze(context, [1])
     
     if attention_layer is not None:
         attention = attention_layer(array_ops.concat([cell_output, context], 1))
     else:
         attention = context
-    
+    print('attention', attention, 'alignments', alignments)
     return attention, alignments
 
 
 class JointAttentionWrapperState(
     collections.namedtuple("JointAttentionWrapperState",
-                           ("cell_state", "time", "encoder_attention", "decoder_attention", "encoder_alignments",
+                           ("cell_state", "time", "encoder_attention", "decoder_attention", "decoder_states",
+                            "encoder_alignments",
                             "decoder_alignments", "encoder_alignment_history", "decoder_alignment_history"))):
     """`namedtuple` storing the state of a `JointAttentionWrapper`.
 
@@ -217,6 +252,7 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
                         % type(attention_mechanism).__name__)
         else:
             self._is_multi = False
+            print('instance', isinstance(attention_mechanism, AttentionMechanism), type(attention_mechanism))
             if not isinstance(attention_mechanism, AttentionMechanism):
                 raise TypeError(
                     "attention_mechanism must be an AttentionMechanism or list of "
@@ -328,6 +364,7 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
             time=tensor_shape.TensorShape([]),
             encoder_attention=self._attention_layer_size,
             decoder_attention=self._cell.state_size,
+            decoder_states=[],
             encoder_alignments=self._item_or_tuple(a.alignments_size for a in self._attention_mechanisms),
             decoder_alignments=self._item_or_tuple(a.alignments_size for a in self._attention_mechanisms),
             encoder_alignment_history=self._item_or_tuple(() for _ in self._attention_mechanisms),
@@ -372,33 +409,40 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
                 cell_state = nest.map_structure(
                     lambda s: array_ops.identity(s, name="checked_cell_state"),
                     cell_state)
+            
+            print('State size', self._cell)
+            
             return JointAttentionWrapperState(
                 cell_state=cell_state,
                 time=array_ops.zeros([], dtype=dtypes.int32),
                 encoder_attention=_zero_state_tensors(self._attention_layer_size, batch_size,
                                                       dtype),
                 # add decoder attention
-                decoder_attention=_zero_state_tensors(self._cell.state_size, batch_size, dtype),
+                decoder_attention=_zero_state_tensors(self._attention_layer_size, batch_size,
+                                                      dtype),
                 encoder_alignments=self._item_or_tuple(
                     attention_mechanism.initial_alignments(batch_size, dtype)
                     for attention_mechanism in self._attention_mechanisms),
+                decoder_alignments=self._item_or_tuple(array_ops.one_hot(
+                    array_ops.zeros((batch_size,), dtype=dtypes.int32), 1,
+                    dtype=dtype) for _ in self._attention_mechanisms),
+                decoder_states=self._item_or_tuple(
+                    [array_ops.zeros((batch_size, self._cell.output_size))] for _ in self._attention_mechanisms),
                 encoder_alignment_history=self._item_or_tuple(
                     tensor_array_ops.TensorArray(dtype=dtype, size=0,
                                                  dynamic_size=True)
                     if self._alignment_history else ()
                     for _ in self._attention_mechanisms),
-                decoder_alignments=self._item_or_tuple(
-                    attention_mechanism.initial_alignments(batch_size, dtype)
-                    for attention_mechanism in self._attention_mechanisms),
                 decoder_alignment_history=self._item_or_tuple(
                     tensor_array_ops.TensorArray(dtype=dtype, size=0,
                                                  dynamic_size=True)
                     if self._alignment_history else ()
                     for _ in self._attention_mechanisms),
-            
             )
     
     def call(self, inputs, state):
+        print('call', inputs, state)
+        
         """Perform a step of attention-wrapped RNN.
 
         - Step 1: Mix the `inputs` and previous step's `attention` output via
@@ -432,11 +476,20 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
             raise TypeError("Expected state to be instance of JointAttentionWrapperState. "
                             "Received type %s instead." % type(state))
         
+        print('state type', type(state))
+        
         # Step 1: Calculate the true inputs to the cell based on the
         # previous attention value.
         cell_inputs = self._cell_input_fn(inputs, state.encoder_attention, state.decoder_attention)
+        
+        print('cell_inputs', cell_inputs)
         cell_state = state.cell_state
+        
+        print('cell_state', cell_state)
+        
         cell_output, next_cell_state = self._cell(cell_inputs, cell_state)
+        
+        print('cell_output, next_cell_state', cell_output, next_cell_state)
         
         cell_batch_size = (
             cell_output.shape[0].value or array_ops.shape(cell_output)[0])
@@ -453,15 +506,25 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
                 cell_output, name="checked_cell_output")
         
         if self._is_multi:
+            decoder_states = state.decoder_states
+            
             encoder_previous_alignments = state.encoder_alignments
             decoder_previous_alignments = state.decoder_alignments
             encoder_previous_alignment_history = state.encoder_alignment_history
             decoder_previous_alignment_history = state.decoder_alignment_history
         else:
+            decoder_states = [state.decoder_states]
+            
             encoder_previous_alignments = [state.encoder_alignments]
             decoder_previous_alignments = [state.decoder_alignments]
             encoder_previous_alignment_history = [state.encoder_alignment_history]
             decoder_previous_alignment_history = [state.decoder_alignment_history]
+        
+        print('decoder_states', decoder_states)
+        print('encoder_previous_alignments', encoder_previous_alignments)
+        print('decoder_previous_alignments', decoder_previous_alignments)
+        print('encoder_previous_alignment_history', encoder_previous_alignment_history)
+        print('decoder_previous_alignment_history', decoder_previous_alignment_history)
         
         all_encoder_alignments = []
         all_encoder_attentions = []
@@ -472,13 +535,13 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
         all_decoder_histories = []
         
         for i, attention_mechanism in enumerate(self._attention_mechanisms):
-            # print('I', i)
+            print('I', i, 'decoder_states', decoder_states)
             
             encoder_attention, encoder_alignments = _compute_encoder_attention(
                 attention_mechanism, cell_output, encoder_previous_alignments[i],
                 self._attention_layers[i] if self._attention_layers else None)
             decoder_attention, decoder_alignments = _compute_decoder_attention(
-                cell_output, decoder_previous_alignments[i],
+                cell_output, decoder_states[i], decoder_previous_alignments[i],
                 self._attention_layers[i] if self._attention_layers else None)
             encoder_alignment_history = encoder_previous_alignment_history[i].write(
                 state.time, encoder_alignments) if self._alignment_history else ()
@@ -494,6 +557,8 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
             all_decoder_alignments.append(decoder_alignments)
             all_decoder_histories.append(decoder_alignment_history)
             all_decoder_attentions.append(decoder_attention)
+            
+            decoder_states[i].append(cell_output)
         
         print('All', all_encoder_alignments, all_encoder_histories, all_encoder_attentions)
         print('All', all_decoder_alignments, all_decoder_histories, all_decoder_attentions)
@@ -509,12 +574,14 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
             encoder_attention=encoder_attention,
             encoder_alignments=self._item_or_tuple(all_encoder_alignments),
             encoder_alignment_history=self._item_or_tuple(all_encoder_histories),
-            decoder_attention=None,
+            decoder_attention=decoder_attention,
+            decoder_states=self._item_or_tuple(decoder_states),
             decoder_alignments=self._item_or_tuple(all_decoder_alignments),
             decoder_alignment_history=self._item_or_tuple(all_decoder_histories)
         )
-        
+        print('encoder_attention', encoder_attention, 'decoder_attention', decoder_attention)
         if self._output_attention:
-            return [encoder_attention, decoder_attention], next_state
+            return tf.layers.dense(tf.concat([encoder_attention, decoder_attention], axis=1),
+                                   self._attention_layer_size), next_state
         else:
             return cell_output, next_state

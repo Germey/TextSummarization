@@ -15,8 +15,8 @@ from tensorflow.python.framework import dtypes
 from tensorflow.python.layers.core import Dense
 from tensorflow.python.util import nest
 
-# from tensorflow.contrib.seq2seq.python.ops import attention_wrapper
-import base_attention as attention_wrapper
+from tensorflow.contrib.seq2seq.python.ops import attention_wrapper
+# import base_attention as attention_wrapper
 from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 
 import attention
@@ -428,16 +428,20 @@ class Seq2SeqModel(object):
                 # Essential when use_residual=True
                 _input_layer = Dense(self.hidden_units, dtype=self.dtype,
                                      name='attn_input_feeding')
+                print('before concat', inputs, encoder_attention, decoder_attention)
+
                 return _input_layer(array_ops.concat([inputs, encoder_attention, decoder_attention], -1))
             
             self.decoder_cell_list[-1] = attention.JointAttentionWrapper(
                 cell=self.decoder_cell_list[-1],
                 attention_mechanism=self.attention_mechanism,
-                attention_layer_size=self.hidden_units,
+                attention_layer_size=self.attention_units,
                 cell_input_fn=attn_decoder_input_fn,
                 initial_cell_state=decoder_initial_state[-1],
+                output_attention=False,
                 alignment_history=True,
                 name='attention_wrapper')
+            print('Wrapper init')
         else:
             def attn_decoder_input_fn(inputs, attention):
                 if not self.attn_input_feeding:
