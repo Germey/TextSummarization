@@ -18,6 +18,7 @@ from tensorflow.python.util import nest
 from tensorflow.contrib.seq2seq.python.ops import attention_wrapper
 from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 
+import attention
 from preprocess.iterator import start_token, end_token
 
 
@@ -43,6 +44,7 @@ class Seq2SeqModel(object):
         self.num_decoder_symbols = config['num_decoder_symbols']
         
         self.use_residual = config['use_residual']
+        self.use_joint_attention = config['use_joint_attention']
         self.use_bidirectional = config['use_bidirectional']
         self.attn_input_feeding = config['attn_input_feeding']
         self.use_dropout = config['use_dropout']
@@ -374,7 +376,7 @@ class Seq2SeqModel(object):
         # To use BeamSearchDecoder, encoder_outputs, encoder_last_state, encoder_inputs_length 
         # needs to be tiled so that: [batch_size, .., ..] -> [batch_size x beam_width, .., ..]
         if self.use_beamsearch_decode:
-            print("use beamsearch decoding..")
+            print("use beamsearch decoding...")
             encoder_outputs = seq2seq.tile_batch(
                 self.encoder_outputs, multiplier=self.beam_width)
             encoder_last_state = nest.map_structure(
@@ -398,25 +400,44 @@ class Seq2SeqModel(object):
             self.build_single_cell() for _ in range(self.depth)]
         decoder_initial_state = encoder_last_state
         
-        def attn_decoder_input_fn(inputs, attention):
-            if not self.attn_input_feeding:
-                return inputs
-            
-            # Essential when use_residual=True
-            _input_layer = Dense(self.hidden_units, dtype=self.dtype,
-                                 name='attn_input_feeding')
-            return _input_layer(array_ops.concat([inputs, attention], -1))
-        
         # AttentionWrapper wraps RNNCell with the attention_mechanism
         # Note: We implement Attention mechanism only on the top decoder layer
-        self.decoder_cell_list[-1] = attention_wrapper.AttentionWrapper(
-            cell=self.decoder_cell_list[-1],
-            attention_mechanism=self.attention_mechanism,
-            attention_layer_size=self.hidden_units,
-            cell_input_fn=attn_decoder_input_fn,
-            initial_cell_state=decoder_initial_state[-1],
-            alignment_history=False,
-            name='attention_wrapper')
+        
+        if self.use_joint_attention:
+            def attn_decoder_input_fn(inputs, encoder_attention, decoder_attention):
+                if not self.attn_input_feeding:
+                    return inputs
+                
+                # Essential when use_residual=True
+                _input_layer = Dense(self.hidden_units, dtype=self.dtype,
+                                     name='attn_input_feeding')
+                return _input_layer(array_ops.concat([inputs, encoder_attention, decoder_attention], -1))
+            
+            self.decoder_cell_list[-1] = attention.JointAttentionWrapper(
+                cell=self.decoder_cell_list[-1],
+                attention_mechanism=self.attention_mechanism,
+                attention_layer_size=self.hidden_units,
+                cell_input_fn=attn_decoder_input_fn,
+                initial_cell_state=decoder_initial_state[-1],
+                alignment_history=False,
+                name='attention_wrapper')
+        else:
+            def attn_decoder_input_fn(inputs, attention):
+                if not self.attn_input_feeding:
+                    return inputs
+                
+                _input_layer = Dense(self.hidden_units, dtype=self.dtype,
+                                     name='attn_input_feeding')
+                return _input_layer(array_ops.concat([inputs, attention], -1))
+            
+            self.decoder_cell_list[-1] = attention_wrapper.AttentionWrapper(
+                cell=self.decoder_cell_list[-1],
+                attention_mechanism=self.attention_mechanism,
+                attention_layer_size=self.hidden_units,
+                cell_input_fn=attn_decoder_input_fn,
+                initial_cell_state=decoder_initial_state[-1],
+                alignment_history=False,
+                name='attention_wrapper')
         
         # To be compatible with AttentionWrapper, the encoder last state
         # of the top layer should be converted into the AttentionWrapperState form

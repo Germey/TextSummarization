@@ -42,6 +42,7 @@ tf.app.flags.DEFINE_boolean('use_dropout', True, 'Use dropout in each rnn cell')
 tf.app.flags.DEFINE_boolean('use_bidirectional', False, 'Use bidirectional rnn cell')
 tf.app.flags.DEFINE_float('dropout_rate', 0.3, 'Dropout probability for input/output/state units (0.0: no dropout)')
 tf.app.flags.DEFINE_string('split_sign', ' ', 'Separator of dataset')
+tf.app.flags.DEFINE_boolean('use_joint_attention', True, 'Use joint attention')
 
 # Training parameters
 tf.app.flags.DEFINE_float('learning_rate', 0.0002, 'Learning rate')
