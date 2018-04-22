@@ -15,7 +15,8 @@ from tensorflow.python.framework import dtypes
 from tensorflow.python.layers.core import Dense
 from tensorflow.python.util import nest
 
-from tensorflow.contrib.seq2seq.python.ops import attention_wrapper
+# from tensorflow.contrib.seq2seq.python.ops import attention_wrapper
+import base_attention as attention_wrapper
 from tensorflow.contrib.seq2seq.python.ops import beam_search_decoder
 
 import attention
@@ -36,6 +37,7 @@ class Seq2SeqModel(object):
         self.cell_type = config['cell_type']
         self.hidden_units = config['hidden_units']
         self.depth = config['depth']
+        self.attention_units = config['attention_units']
         self.attention_type = config['attention_type']
         self.embedding_size = config['embedding_size']
         # self.bidirectional = config.bidirectional
@@ -48,8 +50,11 @@ class Seq2SeqModel(object):
         self.use_bidirectional = config['use_bidirectional']
         self.attn_input_feeding = config['attn_input_feeding']
         self.use_dropout = config['use_dropout']
-        
+        self.batch_size = config['batch_size']
         self.keep_prob = 1.0 - config['dropout_rate']
+        
+        self.source_max_length = config['source_max_length']
+        self.target_max_length = config['target_max_length']
         
         self.optimizer = config['optimizer']
         self.learning_rate = config['learning_rate']
@@ -83,21 +88,22 @@ class Seq2SeqModel(object):
     def init_placeholders(self):
         # encoder_inputs: [batch_size, max_time_steps]
         self.encoder_inputs = tf.placeholder(dtype=tf.int32,
-                                             shape=(None, None), name='encoder_inputs')
+                                             shape=(self.batch_size, self.source_max_length), name='encoder_inputs')
+        print('Encoder Inputs', self.encoder_inputs)
         
         # encoder_inputs_length: [batch_size]
         self.encoder_inputs_length = tf.placeholder(
-            dtype=tf.int32, shape=(None,), name='encoder_inputs_length')
+            dtype=tf.int32, shape=(self.batch_size,), name='encoder_inputs_length')
         
         # get dynamic batch_size
-        self.batch_size = tf.shape(self.encoder_inputs)[0]
+        # self.batch_size = tf.shape(self.encoder_inputs)[0]
         if self.mode == 'train':
             # decoder_inputs: [batch_size, max_time_steps]
             self.decoder_inputs = tf.placeholder(
-                dtype=tf.int32, shape=(None, None), name='decoder_inputs')
+                dtype=tf.int32, shape=(self.batch_size, self.target_max_length), name='decoder_inputs')
             # decoder_inputs_length: [batch_size]
             self.decoder_inputs_length = tf.placeholder(
-                dtype=tf.int32, shape=(None,), name='decoder_inputs_length')
+                dtype=tf.int32, shape=(self.batch_size,), name='decoder_inputs_length')
             
             decoder_start_token = tf.ones(
                 shape=[self.batch_size, 1], dtype=tf.int32) * start_token
@@ -109,13 +115,19 @@ class Seq2SeqModel(object):
             self.decoder_inputs_train = tf.concat([decoder_start_token,
                                                    self.decoder_inputs], axis=1)
             
+            print('decoder_inputs_train', self.decoder_inputs_train)
+            
             # decoder_inputs_length_train: [batch_size]
             self.decoder_inputs_length_train = self.decoder_inputs_length + 1
+            
+            print('decoder_inputs_length_train', self.decoder_inputs_length_train)
             
             # decoder_targets_train: [batch_size, max_time_steps + 1]
             # insert EOS symbol at the end of each decoder input
             self.decoder_targets_train = tf.concat([self.decoder_inputs,
                                                     decoder_end_token], axis=1)
+            
+            print('decoder_targets_train', self.decoder_targets_train)
     
     def build_encoder(self):
         print("building encoder..")
@@ -204,6 +216,9 @@ class Seq2SeqModel(object):
             # Building decoder_cell and decoder_initial_state
             self.decoder_cell, self.decoder_initial_state = self.build_decoder_cell()
             
+            print('decoder_cell', self.decoder_cell)
+            print('decoder_initial_state', self.decoder_initial_state)
+            
             # Initialize decoder embeddings to have variance=1.
             sqrt3 = math.sqrt(3)  # Uniform(-sqrt(3), sqrt(3)) has variance=1.
             initializer = tf.random_uniform_initializer(-sqrt3, sqrt3, dtype=self.dtype)
@@ -211,6 +226,7 @@ class Seq2SeqModel(object):
             self.decoder_embeddings = tf.get_variable(name='embedding',
                                                       shape=[self.num_decoder_symbols, self.embedding_size],
                                                       initializer=initializer, dtype=self.dtype)
+            print('decoder_embeddings', self.decoder_embeddings)
             
             # Input projection layer to feed embedded inputs to the cell
             # ** Essential when use_residual=True to match input/output dims
@@ -224,9 +240,10 @@ class Seq2SeqModel(object):
                 self.decoder_inputs_embedded = tf.nn.embedding_lookup(
                     params=self.decoder_embeddings, ids=self.decoder_inputs_train)
                 
+                print('decoder_inputs_embedded', self.decoder_inputs_embedded)
                 # Embedded inputs having gone through input projection layer
                 self.decoder_inputs_embedded = input_layer(self.decoder_inputs_embedded)
-                
+                print('decoder_inputs_embedded after input layer', self.decoder_inputs_embedded)
                 # Helper to feed inputs for training: read inputs from dense ground truth vectors
                 training_helper = seq2seq.TrainingHelper(inputs=self.decoder_inputs_embedded,
                                                          sequence_length=self.decoder_inputs_length_train,
@@ -419,7 +436,7 @@ class Seq2SeqModel(object):
                 attention_layer_size=self.hidden_units,
                 cell_input_fn=attn_decoder_input_fn,
                 initial_cell_state=decoder_initial_state[-1],
-                alignment_history=False,
+                alignment_history=True,
                 name='attention_wrapper')
         else:
             def attn_decoder_input_fn(inputs, attention):
@@ -428,15 +445,16 @@ class Seq2SeqModel(object):
                 
                 _input_layer = Dense(self.hidden_units, dtype=self.dtype,
                                      name='attn_input_feeding')
+                print('before concat', inputs, attention)
                 return _input_layer(array_ops.concat([inputs, attention], -1))
             
             self.decoder_cell_list[-1] = attention_wrapper.AttentionWrapper(
                 cell=self.decoder_cell_list[-1],
                 attention_mechanism=self.attention_mechanism,
-                attention_layer_size=self.hidden_units,
+                attention_layer_size=self.attention_units,
                 cell_input_fn=attn_decoder_input_fn,
                 initial_cell_state=decoder_initial_state[-1],
-                alignment_history=False,
+                alignment_history=True,
                 name='attention_wrapper')
         
         # To be compatible with AttentionWrapper, the encoder last state
@@ -444,7 +462,7 @@ class Seq2SeqModel(object):
         # We can easily do this by calling AttentionWrapper.zero_state
         
         # Also if beamsearch decoding is used, the batch_size argument in .zero_state
-        # should be ${decoder_beam_width} times to the origianl batch_size
+        # should be ${decoder_beam_width} times to the original batch_size
         batch_size = self.batch_size if not self.use_beamsearch_decode \
             else self.batch_size * self.beam_width
         initial_state = [state for state in encoder_last_state]

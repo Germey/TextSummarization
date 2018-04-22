@@ -47,8 +47,31 @@ def _compute_encoder_attention(attention_mechanism, cell_output, previous_alignm
     return attention, alignments
 
 
-def _compute_decoder_attention(attention_mechanism, cell_output, param, param1):
-    return None, None
+def _compute_decoder_attention(cell_output, previous_alignments, attention_layer):
+    """Computes the attention and alignments for a given attention_mechanism."""
+    alignments = attention_mechanism(
+        cell_output, previous_alignments=previous_alignments)
+    
+    # Reshape from [batch_size, memory_time] to [batch_size, 1, memory_time]
+    expanded_alignments = array_ops.expand_dims(alignments, 1)
+    # Context is the inner product of alignments and values along the
+    # memory time dimension.
+    # alignments shape is
+    #   [batch_size, 1, memory_time]
+    # attention_mechanism.values shape is
+    #   [batch_size, memory_time, memory_size]
+    # the batched matmul is over memory_time, so the output shape is
+    #   [batch_size, 1, memory_size].
+    # we then squeeze out the singleton dim.
+    context = math_ops.matmul(expanded_alignments, attention_mechanism.values)
+    context = array_ops.squeeze(context, [1])
+    
+    if attention_layer is not None:
+        attention = attention_layer(array_ops.concat([cell_output, context], 1))
+    else:
+        attention = context
+    
+    return attention, alignments
 
 
 class JointAttentionWrapperState(
@@ -449,13 +472,13 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
         all_decoder_histories = []
         
         for i, attention_mechanism in enumerate(self._attention_mechanisms):
-            print('I', i)
+            # print('I', i)
             
             encoder_attention, encoder_alignments = _compute_encoder_attention(
                 attention_mechanism, cell_output, encoder_previous_alignments[i],
                 self._attention_layers[i] if self._attention_layers else None)
             decoder_attention, decoder_alignments = _compute_decoder_attention(
-                attention_mechanism, cell_output, decoder_previous_alignments[i],
+                cell_output, decoder_previous_alignments[i],
                 self._attention_layers[i] if self._attention_layers else None)
             encoder_alignment_history = encoder_previous_alignment_history[i].write(
                 state.time, encoder_alignments) if self._alignment_history else ()

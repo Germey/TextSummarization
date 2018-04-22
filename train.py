@@ -31,18 +31,19 @@ tf.app.flags.DEFINE_string('target_valid_data', 'dataset/summerization_sample/su
 tf.app.flags.DEFINE_string('cell_type', 'lstm', 'RNN cell for encoder and decoder, default: lstm')
 tf.app.flags.DEFINE_string('attention_type', 'bahdanau', 'Attention mechanism: (bahdanau, luong), default: bahdanau')
 tf.app.flags.DEFINE_integer('hidden_units', 128, 'Number of hidden units in each layer')
+tf.app.flags.DEFINE_integer('attention_units', 256, 'Number of attention units in each layer')
 tf.app.flags.DEFINE_integer('depth', 3, 'Number of layers in each encoder and decoder')
 tf.app.flags.DEFINE_integer('embedding_size', 300, 'Embedding dimensions of encoder and decoder inputs')
 tf.app.flags.DEFINE_integer('num_encoder_symbols', 21548, 'Source vocabulary size')
 tf.app.flags.DEFINE_integer('num_decoder_symbols', 21548, 'Target vocabulary size')
 
 tf.app.flags.DEFINE_boolean('use_residual', False, 'Use residual connection between layers')
-tf.app.flags.DEFINE_boolean('attn_input_feeding', False, 'Use input feeding method in attentional decoder')
+tf.app.flags.DEFINE_boolean('attn_input_feeding', True, 'Use input feeding method in attentional decoder')
 tf.app.flags.DEFINE_boolean('use_dropout', True, 'Use dropout in each rnn cell')
 tf.app.flags.DEFINE_boolean('use_bidirectional', False, 'Use bidirectional rnn cell')
 tf.app.flags.DEFINE_float('dropout_rate', 0.3, 'Dropout probability for input/output/state units (0.0: no dropout)')
 tf.app.flags.DEFINE_string('split_sign', ' ', 'Separator of dataset')
-tf.app.flags.DEFINE_boolean('use_joint_attention', True, 'Use joint attention')
+tf.app.flags.DEFINE_boolean('use_joint_attention', False, 'Use joint attention')
 
 # Training parameters
 tf.app.flags.DEFINE_float('learning_rate', 0.0002, 'Learning rate')
