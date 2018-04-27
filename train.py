@@ -28,7 +28,7 @@ tf.app.flags.DEFINE_string('target_valid_data', 'dataset/summerization_sample/su
                            'Path to target validation data')
 
 # Network parameters
-tf.app.flags.DEFINE_string('cell_type', 'lstm', 'RNN cell for encoder and decoder, default: lstm')
+tf.app.flags.DEFINE_string('cell_type', 'gru', 'RNN cell for encoder and decoder, default: lstm')
 tf.app.flags.DEFINE_string('attention_type', 'bahdanau', 'Attention mechanism: (bahdanau, luong), default: bahdanau')
 tf.app.flags.DEFINE_integer('hidden_units', 128, 'Number of hidden units in each layer')
 tf.app.flags.DEFINE_integer('attention_units', 256, 'Number of attention units in each layer')
@@ -43,7 +43,8 @@ tf.app.flags.DEFINE_boolean('use_dropout', True, 'Use dropout in each rnn cell')
 tf.app.flags.DEFINE_boolean('use_bidirectional', False, 'Use bidirectional rnn cell')
 tf.app.flags.DEFINE_float('dropout_rate', 0.3, 'Dropout probability for input/output/state units (0.0: no dropout)')
 tf.app.flags.DEFINE_string('split_sign', ' ', 'Separator of dataset')
-tf.app.flags.DEFINE_boolean('use_joint_attention', True, 'Use joint attention')
+tf.app.flags.DEFINE_boolean('use_joint_attention', False, 'Use joint attention')
+tf.app.flags.DEFINE_boolean('use_length_control', True, 'Use length control')
 
 # Training parameters
 tf.app.flags.DEFINE_float('learning_rate', 0.0002, 'Learning rate')

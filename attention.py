@@ -580,6 +580,7 @@ class JointAttentionWrapper(rnn_cell_impl.RNNCell):
             decoder_alignment_history=self._item_or_tuple(all_decoder_histories)
         )
         print('encoder_attention', encoder_attention, 'decoder_attention', decoder_attention)
+        print('next', next_state)
         if self._output_attention:
             return tf.layers.dense(tf.concat([encoder_attention, decoder_attention], axis=1),
                                    self._attention_layer_size), next_state
