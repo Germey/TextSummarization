@@ -44,7 +44,7 @@ tf.app.flags.DEFINE_boolean('use_bidirectional', False, 'Use bidirectional rnn c
 tf.app.flags.DEFINE_float('dropout_rate', 0.3, 'Dropout probability for input/output/state units (0.0: no dropout)')
 tf.app.flags.DEFINE_string('split_sign', ' ', 'Separator of dataset')
 tf.app.flags.DEFINE_boolean('use_joint_attention', False, 'Use joint attention')
-tf.app.flags.DEFINE_boolean('use_length_control', True, 'Use length control')
+tf.app.flags.DEFINE_boolean('use_length_control', False, 'Use length control')
 
 # Training parameters
 tf.app.flags.DEFINE_float('learning_rate', 0.0002, 'Learning rate')
