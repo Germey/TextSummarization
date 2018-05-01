@@ -52,7 +52,7 @@ class Seq2SeqModel(object):
         self.attn_input_feeding = config['attn_input_feeding']
         self.use_dropout = config['use_dropout']
         self.use_length_control = config['use_length_control']
-        self.batch_size = config['batch_size']
+        # self.batch_size = config['batch_size']
         self.keep_prob = 1.0 - config['dropout_rate']
         
         self.source_max_length = config['source_max_length']
@@ -90,22 +90,24 @@ class Seq2SeqModel(object):
     def init_placeholders(self):
         # encoder_inputs: [batch_size, max_time_steps]
         self.encoder_inputs = tf.placeholder(dtype=tf.int32,
-                                             shape=(self.batch_size, None), name='encoder_inputs')
+                                             shape=(None, None), name='encoder_inputs')
         print('Encoder Inputs', self.encoder_inputs)
         
         # encoder_inputs_length: [batch_size]
         self.encoder_inputs_length = tf.placeholder(
-            dtype=tf.int32, shape=(self.batch_size,), name='encoder_inputs_length')
+            dtype=tf.int32, shape=(None,), name='encoder_inputs_length')
         
         # get dynamic batch_size
-        # self.batch_size = tf.shape(self.encoder_inputs)[0]
+        self.batch_size = tf.shape(self.encoder_inputs)[0]
+        print('batch size', self.batch_size)
+        
         if self.mode == 'train':
             # decoder_inputs: [batch_size, max_time_steps]
             self.decoder_inputs = tf.placeholder(
-                dtype=tf.int32, shape=(self.batch_size, None), name='decoder_inputs')
+                dtype=tf.int32, shape=(None, None), name='decoder_inputs')
             
             self.decoder_inputs_length = tf.placeholder(
-                dtype=tf.int32, shape=(self.batch_size,), name='decoder_inputs_length')
+                dtype=tf.int32, shape=(None,), name='decoder_inputs_length')
             
             decoder_start_token = tf.ones(
                 shape=[self.batch_size, 1], dtype=tf.int32) * start_token
