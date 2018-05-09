@@ -91,7 +91,9 @@ def create_model(session, FLAGS):
 
 
 def train():
-    os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
+    
+    if int(FLAGS.gpu) >= 0:
+        os.environ['CUDA_VISIBLE_DEVICES'] = FLAGS.gpu
     
     # Load parallel data to train
     print('Loading training data..')
