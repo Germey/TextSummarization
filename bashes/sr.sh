@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+cd ..
+python3 train.py\
+    --batch_size 128\
+    --source_max_length 30\
+    --target_max_length 30\
+    --display_freq 5\
+    --save_freq 100\
+    --valid_freq 20\
+    --embedding_size 500\
+    --model_dir model/sr\
+    --model_name model.ckpt\
+    --source_vocabulary dataset/sr/vocab.json\
+    --target_vocabulary dataset/sr/vocab.json\
+    --source_train_data dataset/sr/sr.train.txt\
+    --target_train_data dataset/sr/label.train.txt\
+    --source_valid_data dataset/sr/sr.eval.txt\
+    --target_valid_data dataset/sr/label.eval.txt\
+    --num_encoder_symbols 6814\
+    --num_decoder_symbols 6814\
+    --use_bidirectional True
