@@ -7,7 +7,7 @@ name = "pypi"
 
 [packages]
 
-tensorflow = "==1.4.0"
+tensorflow = "==1.15.2"
 jieba = "*"
 
 
